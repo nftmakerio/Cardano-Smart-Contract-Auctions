@@ -12,37 +12,53 @@ module Canonical.Auction
   ( script
   , Auction(..)
   , Datum(..)
-  , Redeemer(..)
+  , Action(..)
   ) where
 
 import Cardano.Api.Shelley (PlutusScript (..), PlutusScriptV1)
 import Codec.Serialise
 import qualified Data.ByteString.Lazy as LB
 import qualified Data.ByteString.Short as SBS
-import Ledger hiding (Datum, singleton)
+import qualified Ledger as Ledger
 import qualified Ledger.Typed.Scripts as Scripts
 import qualified PlutusTx
-import PlutusTx.Prelude hiding (Semigroup (..), unless)
-import Ledger.Ada hiding (divide)
+import PlutusTx.Prelude
+import qualified Ledger.Ada as Ada
+import qualified Ledger.Value as Value
 
 -------------------------------------------------------------------------------
 -- Types
 -------------------------------------------------------------------------------
 data Auction = Auction
-  { auctionSeller :: !PubKeyHash
-  , auctionDeadline :: !POSIXTime
+  { auctionSeller :: !Ledger.PubKeyHash
+  , auctionDeadline :: !Ledger.POSIXTime
   , auctionMinBid :: !Integer
-  , auctionCurrency :: !CurrencySymbol
-  , auctionToken :: !TokenName
+  , auctionCurrency :: !Ledger.CurrencySymbol
+  , auctionToken :: !Ledger.TokenName
   }
 
 PlutusTx.unstableMakeIsData ''Auction
 PlutusTx.makeLift ''Auction
 
+instance Eq Auction where
+  {-# INLINABLE (==) #-}
+  x == y =
+    (auctionSeller x == auctionSeller y)
+      && (auctionDeadline x == auctionDeadline y)
+      && (auctionMinBid x == auctionMinBid y)
+      && (auctionCurrency x == auctionCurrency y)
+      && (auctionToken x == auctionToken y)
+
 data Bid = Bid
-  { bidBidder :: !PubKeyHash
+  { bidBidder :: !Ledger.PubKeyHash
   , bidAmount :: !Integer
   }
+
+instance Eq Bid where
+  {-# INLINABLE (==) #-}
+  x == y =
+    (bidBidder x == bidBidder y)
+      && (bidAmount x == bidAmount y)
 
 PlutusTx.unstableMakeIsData ''Bid
 PlutusTx.makeLift ''Bid
@@ -53,7 +69,7 @@ PlutusTx.unstableMakeIsData ''Action
 PlutusTx.makeLift ''Action
 
 data Datum = Datum
-  { datumAction :: !Auction
+  { datumAuction :: !Auction
   , datumHighBid :: !(Maybe Bid)
   }
 
@@ -64,20 +80,8 @@ PlutusTx.makeLift ''Datum
 -- Utilities
 -------------------------------------------------------------------------------
 {-# INLINABLE lovelaces #-}
-lovelaces :: Value -> Integer
-lovelaces = getLovelace . fromValue
-
-{-# INLINABLE ensureOnlyOneScriptInput #-}
-ensureOnlyOneScriptInput :: ScriptContext -> Bool
-ensureOnlyOneScriptInput ctx =
-  let
-    isScriptInput :: TxInInfo -> Bool
-    isScriptInput i = case (txOutDatumHash . txInInfoResolved) i of
-      Nothing -> False
-      Just _ -> True
-  in if length (filter isScriptInput $ txInfoInputs (scriptContextTxInfo ctx)) <= 1
-       then True
-       else False
+lovelaces :: Ledger.Value -> Integer
+lovelaces = Ada.getLovelace . Ada.fromValue
 
 -------------------------------------------------------------------------------
 -- Validator
@@ -85,12 +89,111 @@ ensureOnlyOneScriptInput ctx =
 {-
 -}
 {-# INLINABLE mkValidator #-}
-mkValidator :: Datum -> Action -> ScriptContext -> Bool
-mkValidator _datum action ctx =
-  traceIfFalse "Only one script input allowed" (ensureOnlyOneScriptInput ctx)
+mkValidator :: Datum -> Action -> Ledger.ScriptContext -> Bool
+mkValidator datum action ctx =
+  traceIfFalse "wrong input value" correctInputValue
     && case action of
-      PlaceBid _bid -> False
-      Close -> False
+      PlaceBid b@Bid{..} ->
+        traceIfFalse "bid too low" (sufficientBid bidAmount)
+          && traceIfFalse "wrong output datum" (correctBidOutputDatum b)
+          && traceIfFalse "wrong output value" (correctBidOutputValue bidAmount)
+          && traceIfFalse "wrong refund" correctBidRefund
+          && traceIfFalse "too late" correctBidSlotRange
+      Close ->
+        traceIfFalse "too early" correctCloseSlotRange
+          && case datumHighBid datum of
+            Nothing ->
+              traceIfFalse "expected seller to get token" (getsValue seller tokenValue)
+            Just Bid{..} ->
+              traceIfFalse "expected highest bidder to get token" (getsValue bidBidder tokenValue)
+                && traceIfFalse "expected seller to get highest bid" (getsValue seller . Ada.lovelaceValueOf $ bidAmount)
+
+  where
+    info :: Ledger.TxInfo
+    info = Ledger.scriptContextTxInfo ctx
+
+    input :: Ledger.TxInInfo
+    input =
+      case xs of
+        [i] -> i
+        _ -> traceError "expected exactly one script input"
+      where
+        xs = filter isScriptInput . Ledger.txInfoInputs $ info
+        isScriptInput = maybe False (const True) . Ledger.txOutDatumHash . Ledger.txInInfoResolved
+
+    inVal :: Ledger.Value
+    inVal = Ledger.txOutValue . Ledger.txInInfoResolved $ input
+
+    auction :: Auction
+    auction = datumAuction datum
+
+    seller :: Ledger.PubKeyHash
+    seller = auctionSeller auction
+
+    highBid :: Maybe Bid
+    highBid = datumHighBid datum
+
+    deadline :: Ledger.POSIXTime
+    deadline = auctionDeadline auction
+
+    tokenValue :: Ledger.Value
+    tokenValue = Value.singleton (auctionCurrency auction) (auctionToken auction) 1
+
+    correctInputValue :: Bool
+    correctInputValue = inVal == case highBid of
+      Nothing -> tokenValue
+      Just Bid{..} -> tokenValue <> Ada.lovelaceValueOf bidAmount
+
+    sufficientBid :: Integer -> Bool
+    sufficientBid amount = amount >= minBid
+      where
+        minBid = case highBid of
+          Nothing -> auctionMinBid auction
+          Just Bid{..} -> bidAmount + 1
+
+    ownOutput   :: Ledger.TxOut
+    outputDatum :: Datum
+    (ownOutput, outputDatum) = case Ledger.getContinuingOutputs ctx of
+      [o] -> case Ledger.txOutDatumHash o of
+        Nothing -> traceError "wrong output type"
+        Just h -> case Ledger.findDatum h info of
+          Nothing -> traceError "datum not found"
+          Just (Ledger.Datum d) ->  case PlutusTx.fromBuiltinData d of
+            Just ad' -> (o, ad')
+            Nothing  -> traceError "error decoding data"
+      _ -> traceError "expected exactly one continuing output"
+
+    correctBidOutputDatum :: Bid -> Bool
+    correctBidOutputDatum b =
+      (datumAuction outputDatum == auction)
+        && (datumHighBid outputDatum == Just b)
+
+    correctBidOutputValue :: Integer -> Bool
+    correctBidOutputValue amount =
+      Ledger.txOutValue ownOutput == tokenValue <> Ada.lovelaceValueOf amount
+
+    correctBidRefund :: Bool
+    correctBidRefund = case highBid of
+      Nothing -> True
+      Just Bid{..} ->
+        case os of
+          [o] -> Ledger.txOutValue o == Ada.lovelaceValueOf bidAmount
+          _   -> traceError "expected exactly one refund output"
+        where
+          os = filter ((Ledger.pubKeyHashAddress bidBidder ==) . Ledger.txOutAddress) . Ledger.txInfoOutputs $ info
+
+    correctBidSlotRange :: Bool
+    correctBidSlotRange = Ledger.to deadline `Ledger.contains` Ledger.txInfoValidRange info
+
+    correctCloseSlotRange :: Bool
+    correctCloseSlotRange = Ledger.from deadline `Ledger.contains` Ledger.txInfoValidRange info
+
+    getsValue :: Ledger.PubKeyHash -> Ledger.Value -> Bool
+    getsValue h v = any same . Ledger.txInfoOutputs $ info
+      where
+        same Ledger.TxOut{..} =
+          (Ledger.pubKeyHashAddress h == txOutAddress)
+            && (v == txOutValue)
 
 -------------------------------------------------------------------------------
 -- Boilerplate
@@ -108,7 +211,7 @@ typedValidator =
   where
     wrap = Scripts.wrapValidator
 
-validator :: Validator
+validator :: Ledger.Validator
 validator = Scripts.validatorScript typedValidator
 
 -------------------------------------------------------------------------------
