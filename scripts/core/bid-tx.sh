@@ -24,7 +24,7 @@ utxoScript=$(scripts/query/sc.sh | grep $oldDatumHash | grep $value | head -n 1 
 output1=$(cardano-cli-balance-fixer utxo-assets --utxo $utxoScript $BLOCKCHAIN)
 currentSlot=$(cardano-cli query tip $BLOCKCHAIN | jq .slot)
 startSlot=$(($currentSlot-1))
-nextTenSlots=$(($currentSlot+50))
+nextTenSlots=$(($currentSlot+150))
 changeOutput=$(cardano-cli-balance-fixer change --address $buyerAddr $BLOCKCHAIN)
 
 extraOutput=""

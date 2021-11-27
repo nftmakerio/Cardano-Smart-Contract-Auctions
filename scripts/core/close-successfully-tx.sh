@@ -41,9 +41,9 @@ cardano-cli transaction build \
     --required-signer $signingKey \
     --tx-in-collateral $(cardano-cli-balance-fixer collateral --address $sellerAddr $BLOCKCHAIN) \
     --tx-out "$winningBuyer + $output1" \
-    --tx-out "$sellerAddr + $sellerAmount + $(cardano-cli-balance-fixer change --address $sellerAddr $BLOCKCHAIN)" \
-    --tx-out "$royaltyAddr + $royaltyAmount"  \
-    --tx-out "$marketplaceAddr + $marketplaceAmount"  \
+    --tx-out "$sellerAddr + $sellerAmount lovelace + $(cardano-cli-balance-fixer change --address $sellerAddr $BLOCKCHAIN)" \
+    --tx-out "$royaltyAddr + $royaltyAmount lovelace "  \
+    --tx-out "$marketplaceAddr + $marketplaceAmount lovelace "  \
     --change-address $sellerAddr \
     --protocol-params-file scripts/$BLOCKCHAIN_PREFIX/protocol-parameters.json \
     --invalid-before $startSlot\

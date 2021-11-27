@@ -26,7 +26,7 @@ utxoScript=$(scripts/query/sc.sh | grep $oldDatumHash | grep $value | head -n 1 
 output1=$(cardano-cli-balance-fixer utxo-assets --utxo $utxoScript $BLOCKCHAIN)
 currentSlot=$(cardano-cli query tip $BLOCKCHAIN | jq .slot)
 startSlot=$(($currentSlot-1))
-nextTenSlots=$(($currentSlot+50))
+nextTenSlots=$(($currentSlot+150))
 changeOutput=$(cardano-cli-balance-fixer change --address $buyerAddr $BLOCKCHAIN)
 
 extraOutput=""
@@ -44,7 +44,7 @@ cardano-cli transaction build \
     --tx-in-redeemer-file $redeemerFile \
     --required-signer $signingKey \
     --tx-in-collateral $(cardano-cli-balance-fixer collateral --address $buyerAddr $BLOCKCHAIN) \
-    --tx-out "$scriptHash + $output1 + $bidAmount lovelace" \
+    --tx-out "$scriptHash + $bidAmount lovelace + 1 $value" \
     --tx-out-datum-hash $newDatumHash \
     --tx-out-datum-embed-file $newDatumFile \
     --tx-out "$buyerAddr + 3000000 lovelace $extraOutput" \

@@ -10,7 +10,7 @@ $baseDir/core/outbid-tx.sh \
   $(cat $baseDir/$BLOCKCHAIN_PREFIX/datums/bid-1-hash.txt) \
   $(cat $baseDir/$BLOCKCHAIN_PREFIX/datums/bid-2-hash.txt) \
   $baseDir/$BLOCKCHAIN_PREFIX/datums/bid-2.json \
-  11000000 \
+  30000000 \
   $baseDir/redeemers/bid-2.json \
   $(cat ~/$BLOCKCHAIN_PREFIX/buyer.addr) \
   10000000

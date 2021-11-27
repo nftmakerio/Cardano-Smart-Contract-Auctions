@@ -7,6 +7,11 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE NumericUnderscores #-}
+{-# LANGUAGE LambdaCase #-}
+
+
 
 module Canonical.Auction
   ( script
@@ -25,6 +30,8 @@ import PlutusTx.Prelude
 import qualified Ledger.Ada as Ada
 import qualified Ledger.Value as Value
 import qualified PlutusTx.AssocMap as A
+import Plutus.V1.Ledger.Credential
+
 
 -------------------------------------------------------------------------------
 -- Types
@@ -76,30 +83,99 @@ PlutusTx.unstableMakeIsData ''Action
 PlutusTx.makeLift ''Action
 
 -------------------------------------------------------------------------------
+-- Base Extras
+-------------------------------------------------------------------------------
+{-# INLINABLE drop #-}
+drop :: Integer -> [a] -> [a]
+drop n l@(_:xs) =
+    if n <= 0 then l
+    else drop (n-1) xs
+drop _ [] = []
+
+{-# INLINABLE merge #-}
+merge :: [(PubKeyHash, Integer)] -> [(PubKeyHash, Integer)] -> [(PubKeyHash, Integer)]
+merge as@(a:as') bs@(b:bs') =
+    if snd a <= snd b
+    then a:(merge as'  bs)
+    else b:(merge as bs')
+merge [] bs = bs
+merge as [] = as
+
+{-# INLINABLE mergeSort #-}
+mergeSort :: [(PubKeyHash, Integer)] -> [(PubKeyHash, Integer)]
+mergeSort xs =
+    let n = length xs
+    in if n > 1
+       then let n2 = n `divide` 2
+            in merge (mergeSort (take n2 xs)) (mergeSort (drop n2 xs))
+       else xs
+
+-------------------------------------------------------------------------------
 -- Utilities
 -------------------------------------------------------------------------------
 {-# INLINABLE lovelaces #-}
-lovelaces :: Value -> Integer
+type Percent = Integer
+type Lovelaces = Integer
+
+lovelaces :: Value -> Lovelaces
 lovelaces = Ada.getLovelace . Ada.fromValue
 
+{-# INLINABLE sortPercents #-}
+sortPercents :: A.Map PubKeyHash Percent -> [(PubKeyHash, Percent)]
+sortPercents = mergeSort . A.toList
+
+{-# INLINABLE minAda #-}
+minAda :: Lovelaces
+minAda = 1_000_000
+-- This needs to track the diff between the value and the min and subtract it from
+-- the "pot". which is what is multiplied by the percent.
+{-# INLINABLE calculateAll #-}
+calculateAll :: Integer -> [(PubKeyHash, Percent)] -> [(PubKeyHash, Lovelaces)]
+calculateAll total percents = go total total percents where
+  go left pot = \case
+    [] -> traceError "No seller percentage specified"
+    [(pkh, _)] -> [(pkh, left)]
+    (pkh, percent) : rest ->
+      let percentOfPot = percentOwed pot percent
+          percentOf = max minAda percentOfPot
+      in (pkh, percentOf) : go (left - percentOf) (pot - max 0 (minAda - percentOfPot)) rest
+
 {-# INLINABLE percentOwed #-}
-percentOwed :: Integer -> Integer -> Integer
+percentOwed :: Lovelaces -> Percent -> Lovelaces
 percentOwed inVal pct = (inVal * pct) `divide` 1000
 
 -- Iterate throught the Config Map and check that each
 -- address gets the correct percentage
 {-# INLINABLE outputValid #-}
-outputValid :: Integer -> TxInfo -> A.Map PubKeyHash Integer -> Bool
-outputValid total info = all (paidPercentOwed total info) . A.toList
+outputValid :: Lovelaces -> TxInfo -> A.Map PubKeyHash Percent -> Bool
+outputValid total info = all (paidPercentOwed info) . calculateAll total . sortPercents
 
 -- For a given address and percentage pair, verify
 -- they received greater or equal to their percentage
 -- of the input.
 {-# INLINABLE paidPercentOwed #-}
-paidPercentOwed :: Integer -> TxInfo -> (PubKeyHash, Integer) -> Bool
-paidPercentOwed total info (addr, pct) =
-  lovelaces (valuePaidTo info addr) >= percentOwed total pct
+paidPercentOwed :: TxInfo -> (PubKeyHash, Lovelaces) -> Bool
+paidPercentOwed info (addr, owed) =
+  lovelaces (valuePaidTo info addr) >= owed
 
+{-# INLINABLE isScriptAddress #-}
+isScriptAddress :: Address -> Bool
+isScriptAddress Address { addressCredential } = case addressCredential of
+  ScriptCredential _ -> True
+  _ -> False
+
+{-# INLINABLE getOnlyScriptInput #-}
+getOnlyScriptInput :: TxInfo -> Value
+getOnlyScriptInput info =
+  let
+    isScriptInput :: TxInInfo -> Bool
+    isScriptInput = isScriptAddress . txOutAddress . txInInfoResolved
+
+    input = case filter isScriptInput . txInfoInputs $ info of
+      [i] -> i
+      _ -> traceError "expected exactly one script input"
+
+  in txOutValue . txInInfoResolved $ input
 -------------------------------------------------------------------------------
 -- Validator
 -------------------------------------------------------------------------------
@@ -129,19 +205,8 @@ mkValidator auction@Auction {..} action ctx =
     info :: TxInfo
     info = scriptContextTxInfo ctx
 
-    ----- rewrite to better clearer an only check that the input has the token, no
-    -- strict equals
-    input :: TxInInfo
-    input =
-      case xs of
-        [i] -> i
-        _ -> traceError "expected exactly one script input"
-      where
-        xs = filter isScriptInput . txInfoInputs $ info
-        isScriptInput = maybe False (const True) . txOutDatumHash . txInInfoResolved
-
     inVal :: Value
-    inVal = txOutValue . txInInfoResolved $ input
+    inVal = getOnlyScriptInput info
 
     tokenValue :: Value
     tokenValue = Value.singleton aCurrency aToken 1
@@ -152,11 +217,13 @@ mkValidator auction@Auction {..} action ctx =
       Just Bid{..} -> tokenValue <> Ada.lovelaceValueOf bidAmount
 
     sufficientBid :: Integer -> Bool
-    sufficientBid amount = amount >= minBid
-      where
+    sufficientBid amount =
+      let
         minBid = case aHighBid of
           Nothing -> aMinBid
           Just Bid{..} -> bidAmount + 1
+
+      in amount >= minBid
 
     ownOutput   :: TxOut
     outputDatum :: Auction
