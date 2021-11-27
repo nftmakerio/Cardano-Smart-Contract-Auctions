@@ -2,7 +2,7 @@ set -eux
 thisDir=$(dirname "$0")
 
 now=$(date +%s)
-timestamp=$(($now+300))
+timestamp=$(($now*1000+300000))
 
 cat << EOF > $thisDir/$BLOCKCHAIN_PREFIX/datums/start.json
 {
