@@ -10,4 +10,5 @@ $baseDir/core/bid-tx.sh \
   $(cat $baseDir/$BLOCKCHAIN_PREFIX/datums/start-hash.txt) \
   $(cat $baseDir/$BLOCKCHAIN_PREFIX/datums/bid-1-hash.txt) \
   $baseDir/$BLOCKCHAIN_PREFIX/datums/bid-1.json \
-  10000000
+  10000000 \
+  $baseDir/redeemers/bid-1.json

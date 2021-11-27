@@ -194,10 +194,10 @@ mkValidator auction@Auction {..} action ctx =
             . txInfoOutputs $ info
 
     correctBidSlotRange :: Bool
-    correctBidSlotRange = to aDeadline `contains` txInfoValidRange info
+    correctBidSlotRange = aDeadline `after` txInfoValidRange info
 
     correctCloseSlotRange :: Bool
-    correctCloseSlotRange = from aDeadline `contains` txInfoValidRange info
+    correctCloseSlotRange = aDeadline `before` txInfoValidRange info
 
     getsValue :: PubKeyHash -> Value -> Bool
     getsValue h v = any same . txInfoOutputs $ info

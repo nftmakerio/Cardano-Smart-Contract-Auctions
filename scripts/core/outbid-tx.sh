@@ -12,6 +12,8 @@ newDatumHash=$6
 newDatumFile=$7
 bidAmount=$8
 redeemerFile=$9
+oldBidder="${10}"
+oldAmount="${11}"
 
 nftValidatorFile=$baseDir/auction.plutus
 scriptHash=$(cat $baseDir/$BLOCKCHAIN_PREFIX/auction.addr)
@@ -46,6 +48,7 @@ cardano-cli transaction build \
     --tx-out-datum-hash $newDatumHash \
     --tx-out-datum-embed-file $newDatumFile \
     --tx-out "$buyerAddr + 3000000 lovelace $extraOutput" \
+    --tx-out "$oldBidder + $oldAmount lovelace" \
     --change-address $buyerAddr \
     --protocol-params-file scripts/$BLOCKCHAIN_PREFIX/protocol-parameters.json \
     --invalid-before $startSlot\
