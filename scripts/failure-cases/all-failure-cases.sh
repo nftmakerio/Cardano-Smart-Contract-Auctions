@@ -1,0 +1,1 @@
+thisDir=$(dirname "$0")

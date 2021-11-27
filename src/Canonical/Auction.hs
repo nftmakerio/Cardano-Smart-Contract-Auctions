@@ -24,6 +24,7 @@ import qualified PlutusTx
 import PlutusTx.Prelude
 import qualified Ledger.Ada as Ada
 import qualified Ledger.Value as Value
+import qualified PlutusTx.AssocMap as A
 
 -------------------------------------------------------------------------------
 -- Types
@@ -35,16 +36,13 @@ data Bid = Bid
   }
 
 data Auction = Auction
-  { aSeller         :: !PubKeyHash
-  , aDeadline       :: !POSIXTime
-  , aMinBid         :: !Integer
-  , aCurrency       :: !CurrencySymbol
-  , aToken          :: !TokenName
-  , aMarketplaceFee :: !Integer
-  , aMarketAddress  :: !Integer
-  , aRoyaltyFee     :: !Integer
-  , aRoyaltyAddress :: !Integer
-  , aHighBid   :: !(Maybe Bid)
+  { aSeller      :: !PubKeyHash
+  , aDeadline    :: !POSIXTime
+  , aMinBid      :: !Integer
+  , aCurrency    :: !CurrencySymbol
+  , aToken       :: !TokenName
+  , aPercentages :: !(A.Map PubKeyHash Integer)
+  , aHighBid     :: !(Maybe Bid)
   }
 
 data Action = PlaceBid !Bid | Close
@@ -57,16 +55,13 @@ PlutusTx.makeLift ''Auction
 instance Eq Auction where
   {-# INLINABLE (==) #-}
   x == y
-    =  (aSeller         x == aSeller   y)
-    && (aDeadline       x == aDeadline y)
-    && (aMinBid         x == aMinBid   y)
-    && (aCurrency       x == aCurrency y)
-    && (aToken          x == aToken    y)
-    && (aMarketplaceFee x == aMarketplaceFee y)
-    && (aMarketAddress  x == aMarketAddress    y)
-    && (aRoyaltyFee     x == aRoyaltyFee y)
-    && (aRoyaltyAddress x == aRoyaltyAddress    y)
-    && (aHighBid   x == aHighBid    y)
+    =  (aSeller      x == aSeller      y)
+    && (aDeadline    x == aDeadline    y)
+    && (aMinBid      x == aMinBid      y)
+    && (aCurrency    x == aCurrency    y)
+    && (aToken       x == aToken       y)
+    && (aPercentages x == aPercentages y)
+    && (aHighBid     x == aHighBid     y)
 
 instance Eq Bid where
   {-# INLINABLE (==) #-}
@@ -86,6 +81,24 @@ PlutusTx.makeLift ''Action
 {-# INLINABLE lovelaces #-}
 lovelaces :: Value -> Integer
 lovelaces = Ada.getLovelace . Ada.fromValue
+
+{-# INLINABLE percentOwed #-}
+percentOwed :: Integer -> Integer -> Integer
+percentOwed inVal pct = (inVal * pct) `divide` 1000
+
+-- Iterate throught the Config Map and check that each
+-- address gets the correct percentage
+{-# INLINABLE outputValid #-}
+outputValid :: Integer -> TxInfo -> A.Map PubKeyHash Integer -> Bool
+outputValid total info = all (paidPercentOwed total info) . A.toList
+
+-- For a given address and percentage pair, verify
+-- they received greater or equal to their percentage
+-- of the input.
+{-# INLINABLE paidPercentOwed #-}
+paidPercentOwed :: Integer -> TxInfo -> (PubKeyHash, Integer) -> Bool
+paidPercentOwed total info (addr, pct) =
+  lovelaces (valuePaidTo info addr) >= percentOwed total pct
 
 -------------------------------------------------------------------------------
 -- Validator
@@ -108,14 +121,16 @@ mkValidator auction@Auction {..} action ctx =
           && case aHighBid of
             Nothing ->
               traceIfFalse "expected seller to get token" (getsValue aSeller tokenValue)
-            Just Bid{..} ->
-              traceIfFalse "expected highest bidder to get token" (getsValue bidBidder tokenValue)
-                && traceIfFalse "expected seller to get highest bid" (getsValue aSeller . Ada.lovelaceValueOf $ bidAmount)
+            Just Bid{..}
+              -> traceIfFalse "expected highest bidder to get token" (getsValue bidBidder tokenValue)
+              && traceIfFalse "expected seller to get highest bid" (outputValid bidAmount info aPercentages)
 
   where
     info :: TxInfo
     info = scriptContextTxInfo ctx
 
+    ----- rewrite to better clearer an only check that the input has the token, no
+    -- strict equals
     input :: TxInInfo
     input =
       case xs of
@@ -132,7 +147,7 @@ mkValidator auction@Auction {..} action ctx =
     tokenValue = Value.singleton aCurrency aToken 1
 
     correctInputValue :: Bool
-    correctInputValue = inVal == case aHighBid of
+    correctInputValue = inVal `Value.geq` case aHighBid of
       Nothing -> tokenValue
       Just Bid{..} -> tokenValue <> Ada.lovelaceValueOf bidAmount
 
@@ -158,20 +173,18 @@ mkValidator auction@Auction {..} action ctx =
 
     correctBidOutputDatum :: Bid -> Bool
     correctBidOutputDatum b
-      = outputDatum == auction
-          { aHighBid = Just b
-          }
+      = outputDatum == (auction { aHighBid = Just b })
 
     correctBidOutputValue :: Integer -> Bool
     correctBidOutputValue amount =
-      txOutValue ownOutput == tokenValue <> Ada.lovelaceValueOf amount
+      txOutValue ownOutput `Value.geq` (tokenValue <> Ada.lovelaceValueOf amount)
 
     correctBidRefund :: Bool
     correctBidRefund = case aHighBid of
       Nothing -> True
       Just Bid{..} ->
         case os of
-          [o] -> txOutValue o == Ada.lovelaceValueOf bidAmount
+          [o] -> lovelaces (txOutValue o) >= bidAmount
           _   -> traceError "expected exactly one refund output"
         where
           os = filter
@@ -191,7 +204,7 @@ mkValidator auction@Auction {..} action ctx =
       where
         same TxOut{..} =
           (pubKeyHashAddress h == txOutAddress)
-            && (v == txOutValue)
+            && (txOutValue `Value.geq` v)
 
 -------------------------------------------------------------------------------
 -- Boilerplate

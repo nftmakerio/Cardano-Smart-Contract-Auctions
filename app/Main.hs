@@ -26,6 +26,7 @@ optsParser = Opts
     [ long "output"
     , metavar "FILE"
     , help "Where to write the Plutus script"
+    , value "scripts/auction.plutus"
     ])
 
 createSC :: Opts -> IO ()
