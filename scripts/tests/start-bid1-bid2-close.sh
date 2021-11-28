@@ -35,7 +35,7 @@ fi
 
 endTime=$(date +%s)
 elapsedTime=$(($endTime-$startTime))
-sleepTime=$((505 - $elapsedTime))
+sleepTime=$((705 - $elapsedTime))
 sleep $sleepTime
 
 echo Close
