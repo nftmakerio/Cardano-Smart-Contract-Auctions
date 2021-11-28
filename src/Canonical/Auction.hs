@@ -183,38 +183,38 @@ getOnlyScriptInput info =
 -}
 {-# INLINABLE mkValidator #-}
 mkValidator :: Auction -> Action -> ScriptContext -> Bool
-mkValidator auction@Auction {..} action ctx =
-  traceIfFalse "wrong input value" correctInputValue
-    && case action of
-      PlaceBid b@Bid{..}
-          -> traceIfFalse "bid too low"        (sufficientBid bidAmount)
-          && traceIfFalse "wrong output datum" (correctBidOutputDatum b)
-          && traceIfFalse "wrong output value" (correctBidOutputValue bidAmount)
-          && traceIfFalse "wrong refund"       correctBidRefund
-          && traceIfFalse "too late"           correctBidSlotRange
-      Close ->
-        traceIfFalse "too early" correctCloseSlotRange
-          && case aHighBid of
-            Nothing ->
-              traceIfFalse "expected seller to get token" (getsValue aSeller tokenValue)
-            Just Bid{..}
-              -> traceIfFalse "expected highest bidder to get token" (getsValue bidBidder tokenValue)
-              && traceIfFalse "expected seller to get highest bid" (outputValid bidAmount info aPercentages)
+mkValidator auction@Auction {..} action ctx
+  = traceIfFalse "wrong input value" correctInputValue
+  && case action of
+    PlaceBid b@Bid{..}
+        -> traceIfFalse "bid too low"        (sufficientBid bidAmount)
+        && traceIfFalse "wrong output datum" (correctBidOutputDatum b)
+        && traceIfFalse "wrong output value" (correctBidOutputValue bidAmount)
+        && traceIfFalse "wrong refund"       correctBidRefund
+        && traceIfFalse "too late"           correctBidSlotRange
+    Close ->
+      traceIfFalse "too early" correctCloseSlotRange
+        && case aHighBid of
+          Nothing
+            -> traceIfFalse "expected seller to get token" (getsValue aSeller tokenValue)
+          Just Bid{..}
+            -> traceIfFalse "expected highest bidder to get token" (getsValue bidBidder tokenValue)
+            && traceIfFalse "expected all sellers to get highest bid" (outputValid bidAmount info aPercentages)
 
   where
     info :: TxInfo
     info = scriptContextTxInfo ctx
 
-    inVal :: Value
-    inVal = getOnlyScriptInput info
-
     tokenValue :: Value
     tokenValue = Value.singleton aCurrency aToken 1
 
-    correctInputValue :: Bool
-    correctInputValue = inVal `Value.geq` case aHighBid of
+    expectedScriptValue :: Value
+    expectedScriptValue = case aHighBid of
       Nothing -> tokenValue
       Just Bid{..} -> tokenValue <> Ada.lovelaceValueOf bidAmount
+
+    correctInputValue :: Bool
+    correctInputValue = getOnlyScriptInput info `Value.geq` expectedScriptValue
 
     sufficientBid :: Integer -> Bool
     sufficientBid amount =
