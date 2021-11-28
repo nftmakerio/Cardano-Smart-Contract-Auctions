@@ -18,6 +18,8 @@ echo First Bid
 $baseDir/happy-path/bid-1-tx.sh
 $baseDir/wait/until-next-block.sh
 
+# TODO try to close early
+
 echo Second Bid
 $baseDir/happy-path/bid-2-tx.sh
 $baseDir/wait/until-next-block.sh
@@ -35,9 +37,8 @@ fi
 
 endTime=$(date +%s)
 elapsedTime=$(($endTime-$startTime))
-sleepTime=$((705 - $elapsedTime))
+sleepTime=$((805 - $elapsedTime))
 sleep $sleepTime
 
 echo Close
 $baseDir/happy-path/close-tx.sh
-$baseDir/wait/until-next-block.sh
