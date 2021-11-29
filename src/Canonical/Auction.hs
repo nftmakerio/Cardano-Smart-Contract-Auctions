@@ -10,6 +10,7 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE BangPatterns #-}
 
 
 
@@ -17,6 +18,8 @@ module Canonical.Auction
   ( script
   , Auction(..)
   , Action(..)
+  , payoutPerAddress
+  , mergeSort
   ) where
 
 import Cardano.Api.Shelley (PlutusScript (..), PlutusScriptV1)
@@ -130,15 +133,16 @@ minAda = 1_000_000
 
 -- This needs to track the diff between the value and the min and subtract it from
 -- the "pot". which is what is multiplied by the percent.
-{-# INLINABLE calculateAll #-}
-calculateAll :: Integer -> [(PubKeyHash, Percent)] -> [(PubKeyHash, Lovelaces)]
-calculateAll total percents = go total 1000 percents where
+-- Input must be sorted by percent, least to greatest
+{-# INLINABLE payoutPerAddress #-}
+payoutPerAddress :: Integer -> [(PubKeyHash, Percent)] -> [(PubKeyHash, Lovelaces)]
+payoutPerAddress total percents = go total 1000 percents where
   go left totalPercent = \case
     [] -> traceError "No seller percentage specified"
     [(pkh, _)] -> [(pkh, left)]
     (pkh, percent) : rest ->
-      let percentOfPot = percentOwed totalPercent left percent
-          percentOf = max minAda percentOfPot
+      let !percentOfPot = percentOwed totalPercent left percent
+          !percentOf = max minAda percentOfPot
       in (pkh, percentOf) : go (left - percentOf) (totalPercent - percent) rest
 
 {-# INLINABLE percentOwed #-}
@@ -149,7 +153,7 @@ percentOwed divider inVal pct = (inVal * pct) `divide` divider
 -- address gets the correct percentage
 {-# INLINABLE outputValid #-}
 outputValid :: Lovelaces -> TxInfo -> A.Map PubKeyHash Percent -> Bool
-outputValid total info = all (paidPercentOwed info) . calculateAll total . sortPercents
+outputValid total info = all (paidPercentOwed info) . payoutPerAddress total . sortPercents
 
 -- For a given address and percentage pair, verify
 -- they received greater or equal to their percentage

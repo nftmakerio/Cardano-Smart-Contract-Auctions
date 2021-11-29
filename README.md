@@ -95,7 +95,7 @@ royalty: 250,000
 Here is another example with percentages were 80%, 15% and 5% with 10,000,000 lovelaces:
 
 ```
-seller: 7,578,947
+seller: 7,578,948
 marketplace: 1,421,052
 royalty: 1,000,000
 ```
