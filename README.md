@@ -9,7 +9,7 @@ The repo also contains an executable for compiling the smart contract in `app/Ma
 The compile the code to a Plutus smart contract, run:
 
 ```bash
-cabal run
+cabal run create-auction-sc
 ```
 
 This will write a file to `scripts/auction.plutus`
@@ -59,12 +59,12 @@ data Auction = Auction
   , aMinBid      :: !Integer
   , aCurrency    :: !CurrencySymbol
   , aToken       :: !TokenName
-  , aPercentages :: !(A.Map PubKeyHash Integer)
+  , aPayoutPercentages :: !(A.Map PubKeyHash Integer)
   , aHighBid     :: !(Maybe Bid)
   }
 ```
 
-A crucial note is the `aPercentages` field which is used to determine how to distribute the winning bid. Instead of going entirely to seller it is split up using the percentages in the map, as described in detail below.
+A crucial note is the `aPayoutPercentages` field which is used to determine how to distribute the winning bid. Instead of going entirely to seller it is split up using the percentages in the map, as described in detail below.
 
 ## Understanding the Price Calculation
 

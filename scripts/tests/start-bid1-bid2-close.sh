@@ -11,14 +11,23 @@ $baseDir/minting/mint-0-policy.sh
 $baseDir/wait/until-next-block.sh
 
 echo Start Auction
-$baseDir/happy-path/lock-tx.sh
+$baseDir/happy-path/lock-tx.sh 500000
 $baseDir/wait/until-next-block.sh
+
+echo Early Close Fails
+detected=false
+
+"$baseDir/failure-cases/early-close.sh" || {
+    detected=true
+}
+
+if [ detected == false ]; then
+  exit 1
+fi
 
 echo First Bid
 $baseDir/happy-path/bid-1-tx.sh
 $baseDir/wait/until-next-block.sh
-
-# TODO try to close early
 
 echo Second Bid
 $baseDir/happy-path/bid-2-tx.sh

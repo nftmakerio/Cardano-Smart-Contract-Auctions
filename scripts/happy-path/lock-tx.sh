@@ -2,7 +2,7 @@ set -eux
 thisDir=$(dirname "$0")
 baseDir=$thisDir/../
 
-$baseDir/update-start-time.sh
+$baseDir/update-start-time.sh $1
 
 sleep 2
 

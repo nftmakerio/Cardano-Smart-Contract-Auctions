@@ -1,19 +1,4 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE NamedFieldPuns #-}
-{-# LANGUAGE NumericUnderscores #-}
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE BangPatterns #-}
-
-
-
 module Canonical.Auction
   ( script
   , Auction(..)
@@ -35,27 +20,26 @@ import qualified Ledger.Value as Value
 import qualified PlutusTx.AssocMap as A
 import Plutus.V1.Ledger.Credential
 
-
 -------------------------------------------------------------------------------
 -- Types
 -------------------------------------------------------------------------------
-
 data Bid = Bid
   { bidBidder :: !PubKeyHash
   , bidAmount :: !Integer
   }
 
 data Auction = Auction
-  { aSeller      :: !PubKeyHash
-  , aDeadline    :: !POSIXTime
-  , aMinBid      :: !Integer
-  , aCurrency    :: !CurrencySymbol
-  , aToken       :: !TokenName
-  , aPercentages :: !(A.Map PubKeyHash Integer)
-  , aHighBid     :: !(Maybe Bid)
+  { aSeller            :: !PubKeyHash
+  , aDeadline          :: !POSIXTime
+  , aMinBid            :: !Integer
+  , aCurrency          :: !CurrencySymbol
+  , aToken             :: !TokenName
+  , aPayoutPercentages :: !(A.Map PubKeyHash Integer)
+  , aHighBid           :: !(Maybe Bid)
   }
 
 data Action = PlaceBid !Bid | Close
+
 -------------------------------------------------------------------------------
 -- Boilerplate
 -------------------------------------------------------------------------------
@@ -65,13 +49,13 @@ PlutusTx.makeLift ''Auction
 instance Eq Auction where
   {-# INLINABLE (==) #-}
   x == y
-    =  (aSeller      x == aSeller      y)
-    && (aDeadline    x == aDeadline    y)
-    && (aMinBid      x == aMinBid      y)
-    && (aCurrency    x == aCurrency    y)
-    && (aToken       x == aToken       y)
-    && (aPercentages x == aPercentages y)
-    && (aHighBid     x == aHighBid     y)
+    =  (aSeller            x == aSeller            y)
+    && (aDeadline          x == aDeadline          y)
+    && (aMinBid            x == aMinBid            y)
+    && (aCurrency          x == aCurrency          y)
+    && (aToken             x == aToken             y)
+    && (aPayoutPercentages x == aPayoutPercentages y)
+    && (aHighBid           x == aHighBid           y)
 
 instance Eq Bid where
   {-# INLINABLE (==) #-}
@@ -86,7 +70,7 @@ PlutusTx.unstableMakeIsData ''Action
 PlutusTx.makeLift ''Action
 
 -------------------------------------------------------------------------------
--- Base Extras
+-- Sorting Utilities
 -------------------------------------------------------------------------------
 {-# INLINABLE drop #-}
 drop :: Integer -> [a] -> [a]
@@ -114,26 +98,39 @@ mergeSort xs =
        else xs
 
 -------------------------------------------------------------------------------
--- Utilities
+-- Payout Utilities
 -------------------------------------------------------------------------------
-{-# INLINABLE lovelaces #-}
 type Percent = Integer
 type Lovelaces = Integer
 
+{-# INLINABLE lovelaces #-}
 lovelaces :: Value -> Lovelaces
 lovelaces = Ada.getLovelace . Ada.fromValue
 
-{-# INLINABLE sortPercents #-}
-sortPercents :: A.Map PubKeyHash Percent -> [(PubKeyHash, Percent)]
-sortPercents = mergeSort . A.toList
+{-# INLINABLE lovelacesPaidTo #-}
+lovelacesPaidTo :: TxInfo -> PubKeyHash -> Integer
+lovelacesPaidTo info pkh = lovelaces (valuePaidTo info pkh)
 
 {-# INLINABLE minAda #-}
 minAda :: Lovelaces
 minAda = 1_000_000
 
--- This needs to track the diff between the value and the min and subtract it from
--- the "pot". which is what is multiplied by the percent.
--- Input must be sorted by percent, least to greatest
+{-# INLINABLE sortPercents #-}
+sortPercents :: A.Map PubKeyHash Percent -> [(PubKeyHash, Percent)]
+sortPercents = mergeSort . A.toList
+
+-- This computes the payout by attempting to the honor the percentage while
+-- keeping the payout above 1 Ada. Because 1 Ada could be higher than the
+-- percentage, if a minimum occurs, it has to adjust the rest of the payouts
+-- It does this by subtracting the amount payed from the total payout,
+-- and subtracting the total percentage available after each payout.
+-- More details are explained in the README. It is also the main
+-- function tested in the unit tests.
+--
+-- !!!!!! IMPORTANT
+-- This function assumes the input is sorted by percent from least to
+-- greatest.
+--
 {-# INLINABLE payoutPerAddress #-}
 payoutPerAddress :: Integer -> [(PubKeyHash, Percent)] -> [(PubKeyHash, Lovelaces)]
 payoutPerAddress total percents = go total 1000 percents where
@@ -141,34 +138,42 @@ payoutPerAddress total percents = go total 1000 percents where
     [] -> traceError "No seller percentage specified"
     [(pkh, _)] -> [(pkh, left)]
     (pkh, percent) : rest ->
-      let !percentOfPot = percentOwed totalPercent left percent
+      let !percentOfPot = applyPercent totalPercent left percent
           !percentOf = max minAda percentOfPot
       in (pkh, percentOf) : go (left - percentOf) (totalPercent - percent) rest
 
-{-# INLINABLE percentOwed #-}
-percentOwed :: Integer -> Lovelaces -> Percent -> Lovelaces
-percentOwed divider inVal pct = (inVal * pct) `divide` divider
+{-# INLINABLE applyPercent #-}
+applyPercent :: Integer -> Lovelaces -> Percent -> Lovelaces
+applyPercent divider inVal pct = (inVal * pct) `divide` divider
 
--- Iterate throught the Config Map and check that each
--- address gets the correct percentage
-{-# INLINABLE outputValid #-}
-outputValid :: Lovelaces -> TxInfo -> A.Map PubKeyHash Percent -> Bool
-outputValid total info = all (paidPercentOwed info) . payoutPerAddress total . sortPercents
+-- Sort the payout map from least to greatest.
+-- Compute the payouts for each address.
+-- Check that each address has received their payout.
+{-# INLINABLE payoutIsValid #-}
+payoutIsValid :: Lovelaces -> TxInfo -> A.Map PubKeyHash Percent -> Bool
+payoutIsValid total info
+  = all (paidapplyPercent info)
+  . payoutPerAddress total
+  . sortPercents
 
 -- For a given address and percentage pair, verify
 -- they received greater or equal to their percentage
 -- of the input.
-{-# INLINABLE paidPercentOwed #-}
-paidPercentOwed :: TxInfo -> (PubKeyHash, Lovelaces) -> Bool
-paidPercentOwed info (addr, owed) =
-  lovelaces (valuePaidTo info addr) >= owed
+{-# INLINABLE paidapplyPercent #-}
+paidapplyPercent :: TxInfo -> (PubKeyHash, Lovelaces) -> Bool
+paidapplyPercent info (addr, owed)
+  = lovelacesPaidTo info addr >= owed
 
+-------------------------------------------------------------------------------
+-- Batch Transaction Exploit Protection
+-------------------------------------------------------------------------------
 {-# INLINABLE isScriptAddress #-}
 isScriptAddress :: Address -> Bool
 isScriptAddress Address { addressCredential } = case addressCredential of
   ScriptCredential _ -> True
   _ -> False
 
+-- Verify that there is only one script input and get it's value.
 {-# INLINABLE getOnlyScriptInput #-}
 getOnlyScriptInput :: TxInfo -> Value
 getOnlyScriptInput info =
@@ -181,103 +186,121 @@ getOnlyScriptInput info =
       _ -> traceError "expected exactly one script input"
 
   in txOutValue . txInInfoResolved $ input
+
 -------------------------------------------------------------------------------
 -- Validator
 -------------------------------------------------------------------------------
 {-
+This is an auction validator. It is configured with an asset, reserve price,
+seller, and expiration.
+
+Until it is expired, bids are accepted if they are higher than the reserve
+price or the last bid.
+
+Once the time for the auction expires, either the asset can be sent back to
+the seller (if there were no bids), or the asset is sent to the highest bidder
+and the bid Ada is split to the addresses in the 'aPayoutPercentages'.
+
+The payout amounts are determined by the percentages in the
+'aPayoutPercentages' map.
 -}
 {-# INLINABLE mkValidator #-}
 mkValidator :: Auction -> Action -> ScriptContext -> Bool
-mkValidator auction@Auction {..} action ctx
-  = traceIfFalse "wrong input value" correctInputValue
-  && case action of
-    PlaceBid b@Bid{..}
-        -> traceIfFalse "bid too low"        (sufficientBid bidAmount)
-        && traceIfFalse "wrong output datum" (correctBidOutputDatum b)
-        && traceIfFalse "wrong output value" (correctBidOutputValue bidAmount)
-        && traceIfFalse "wrong refund"       correctBidRefund
-        && traceIfFalse "too late"           correctBidSlotRange
-    Close ->
-      traceIfFalse "too early" correctCloseSlotRange
-        && case aHighBid of
-          Nothing
-            -> traceIfFalse "expected seller to get token" (getsValue aSeller tokenValue)
-          Just Bid{..}
-            -> traceIfFalse "expected highest bidder to get token" (getsValue bidBidder tokenValue)
-            && traceIfFalse "expected all sellers to get highest bid" (outputValid bidAmount info aPercentages)
-
-  where
+mkValidator auction@Auction {..} action ctx =
+  let
     info :: TxInfo
     info = scriptContextTxInfo ctx
 
+    -- Helper to make sure the pkh is paid at least the value.
+    getsValue :: PubKeyHash -> Value -> Bool
+    getsValue h v = valuePaidTo info h `Value.geq` v
+
+    -- The asset we are auctioning as a Value
     tokenValue :: Value
     tokenValue = Value.singleton aCurrency aToken 1
 
+    -- The value we expect on the script input based on
+    -- datum.
     expectedScriptValue :: Value
-    expectedScriptValue = case aHighBid of
+    !expectedScriptValue = case aHighBid of
       Nothing -> tokenValue
       Just Bid{..} -> tokenValue <> Ada.lovelaceValueOf bidAmount
 
+    -- Ensure the value is on the script address and there is
+    -- only one script input.
     correctInputValue :: Bool
-    correctInputValue = getOnlyScriptInput info `Value.geq` expectedScriptValue
+    !correctInputValue = getOnlyScriptInput info `Value.geq` expectedScriptValue
 
-    sufficientBid :: Integer -> Bool
-    sufficientBid amount =
+  -- Always perform the input check
+  in traceIfFalse "wrong input value" correctInputValue
+  && case action of
+    PlaceBid theBid ->
       let
-        minBid = case aHighBid of
-          Nothing -> aMinBid
-          Just Bid{..} -> bidAmount + 1
+        -- Ensure the amount is great than the current
+        -- min bid, e.g. the reserve price or last bid.
+        sufficientBid :: Integer -> Bool
+        sufficientBid amount =
+          amount >= case aHighBid of
+            Nothing -> aMinBid
+            Just Bid{..} -> bidAmount + 1
 
-      in amount >= minBid
+        ownOutput   :: TxOut
+        outputDatum :: Auction
 
-    ownOutput   :: TxOut
-    outputDatum :: Auction
+        (!ownOutput, !outputDatum) = case getContinuingOutputs ctx of
+          [o] -> case txOutDatumHash o of
+            Nothing -> traceError "wrong output type"
+            Just h -> case findDatum h info of
+              Nothing -> traceError "datum not found"
+              Just (Datum d) ->  case PlutusTx.fromBuiltinData d of
+                Just !ad' -> (o, ad')
+                Nothing  -> traceError "error decoding data"
+          _ -> traceError "expected exactly one continuing output"
 
-    (ownOutput, outputDatum) = case getContinuingOutputs ctx of
-      [o] -> case txOutDatumHash o of
-        Nothing -> traceError "wrong output type"
-        Just h -> case findDatum h info of
-          Nothing -> traceError "datum not found"
-          Just (Datum d) ->  case PlutusTx.fromBuiltinData d of
-            Just ad' -> (o, ad')
-            Nothing  -> traceError "error decoding data"
-      _ -> traceError "expected exactly one continuing output"
+        -- Make sure we are setting the next datum correctly
+        -- Everything should be the same, but we should
+        -- update the latest bid.
+        correctBidOutputDatum :: Bid -> Bool
+        correctBidOutputDatum b
+          = outputDatum == (auction { aHighBid = Just b })
 
-    correctBidOutputDatum :: Bid -> Bool
-    correctBidOutputDatum b
-      = outputDatum == (auction { aHighBid = Just b })
 
-    correctBidOutputValue :: Integer -> Bool
-    correctBidOutputValue amount =
-      txOutValue ownOutput `Value.geq` (tokenValue <> Ada.lovelaceValueOf amount)
+        correctBidOutputValue :: Integer -> Bool
+        correctBidOutputValue amount =
+          txOutValue ownOutput `Value.geq` (tokenValue <> Ada.lovelaceValueOf amount)
 
-    correctBidRefund :: Bool
-    correctBidRefund = case aHighBid of
-      Nothing -> True
-      Just Bid{..} ->
-        case os of
-          [o] -> lovelaces (txOutValue o) >= bidAmount
-          _   -> traceError "expected exactly one refund output"
-        where
-          os = filter
-            ( (pubKeyHashAddress bidBidder ==)
-            . txOutAddress
-            )
-            . txInfoOutputs $ info
+        correctBidRefund :: Bool
+        !correctBidRefund = case aHighBid of
+          Nothing -> True
+          Just Bid{..} -> lovelacesPaidTo info bidBidder >= bidAmount
 
-    correctBidSlotRange :: Bool
-    correctBidSlotRange = aDeadline `after` txInfoValidRange info
+        correctBidSlotRange :: Bool
+        !correctBidSlotRange = aDeadline `after` txInfoValidRange info
 
-    correctCloseSlotRange :: Bool
-    correctCloseSlotRange = aDeadline `before` txInfoValidRange info
+      in traceIfFalse "bid too low"        (sufficientBid $ bidAmount theBid)
+      && traceIfFalse "wrong output datum" (correctBidOutputDatum theBid)
+      && traceIfFalse "wrong output value" (correctBidOutputValue $ bidAmount theBid)
+      && traceIfFalse "wrong refund"       correctBidRefund
+      && traceIfFalse "too late"           correctBidSlotRange
 
-    -- TODO replace with paidTo
-    getsValue :: PubKeyHash -> Value -> Bool
-    getsValue h v = any same . txInfoOutputs $ info
-      where
-        same TxOut{..} =
-          (pubKeyHashAddress h == txOutAddress)
-            && (txOutValue `Value.geq` v)
+    Close ->
+      let
+        correctCloseSlotRange :: Bool
+        !correctCloseSlotRange = aDeadline `before` txInfoValidRange info
+
+      in traceIfFalse "too early" correctCloseSlotRange
+      && case aHighBid of
+          Nothing
+            -> traceIfFalse
+                "expected seller to get token"
+                (getsValue aSeller tokenValue)
+          Just Bid{..}
+            -> traceIfFalse
+                "expected highest bidder to get token"
+                (getsValue bidBidder tokenValue)
+            && traceIfFalse
+                "expected all sellers to get highest bid"
+                (payoutIsValid bidAmount info aPayoutPercentages)
 
 -------------------------------------------------------------------------------
 -- Boilerplate

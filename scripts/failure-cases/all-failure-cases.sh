@@ -1,1 +1,0 @@
-thisDir=$(dirname "$0")
