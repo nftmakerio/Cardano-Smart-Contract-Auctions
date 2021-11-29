@@ -145,3 +145,13 @@ $ ./scripts/tests/run-all-tests
 ```
 
 The tests will start running. If the script errors one of the tests has failed. Otherwise all the tests have passed.
+
+## TODO create faucet that is also the drain at the end of a run.
+## I either mint, or I reuse something I minted.
+# Each round starts with the seller having one nft and no money.
+# The marketplace has some money to close.
+# The bidders have exactly their bid.
+# The attacker has nothing
+# The royalty has nothing
+# Stuff happens
+# Everything is sent back to the faucet address.
