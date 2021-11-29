@@ -165,7 +165,24 @@ paidapplyPercent info (addr, owed)
   = lovelacesPaidTo info addr >= owed
 
 -------------------------------------------------------------------------------
--- Batch Transaction Exploit Protection
+{-
+
+Batch Transaction Exploit Protection
+
+All combinations of redeemers
+outbid/outbid, close/close and close,outbid
+are exploitable.
+
+If an attacker outbids the same payout address twice,
+they could rewire one of the payouts to themselves.
+
+If an attacker outbids and closes with the same payout address,
+they could rewire half the payouts.
+
+If an attacker double closes with the same payout address,
+they could rewire half the payouts.
+
+-}
 -------------------------------------------------------------------------------
 {-# INLINABLE isScriptAddress #-}
 isScriptAddress :: Address -> Bool
