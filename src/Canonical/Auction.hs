@@ -127,22 +127,23 @@ sortPercents = mergeSort . A.toList
 {-# INLINABLE minAda #-}
 minAda :: Lovelaces
 minAda = 1_000_000
+
 -- This needs to track the diff between the value and the min and subtract it from
 -- the "pot". which is what is multiplied by the percent.
 {-# INLINABLE calculateAll #-}
 calculateAll :: Integer -> [(PubKeyHash, Percent)] -> [(PubKeyHash, Lovelaces)]
-calculateAll total percents = go total total percents where
-  go left pot = \case
+calculateAll total percents = go total 1000 percents where
+  go left totalPercent = \case
     [] -> traceError "No seller percentage specified"
     [(pkh, _)] -> [(pkh, left)]
     (pkh, percent) : rest ->
-      let percentOfPot = percentOwed pot percent
+      let percentOfPot = percentOwed totalPercent left percent
           percentOf = max minAda percentOfPot
-      in (pkh, percentOf) : go (left - percentOf) (pot - max 0 (minAda - percentOfPot)) rest
+      in (pkh, percentOf) : go (left - percentOf) (totalPercent - percent) rest
 
 {-# INLINABLE percentOwed #-}
-percentOwed :: Lovelaces -> Percent -> Lovelaces
-percentOwed inVal pct = (inVal * pct) `divide` 1000
+percentOwed :: Integer -> Lovelaces -> Percent -> Lovelaces
+percentOwed divider inVal pct = (inVal * pct) `divide` divider
 
 -- Iterate throught the Config Map and check that each
 -- address gets the correct percentage
@@ -266,6 +267,7 @@ mkValidator auction@Auction {..} action ctx
     correctCloseSlotRange :: Bool
     correctCloseSlotRange = aDeadline `before` txInfoValidRange info
 
+    -- TODO replace with paidTo
     getsValue :: PubKeyHash -> Value -> Bool
     getsValue h v = any same . txInfoOutputs $ info
       where

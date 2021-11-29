@@ -42,3 +42,14 @@ executable create-auction-sc
     , cardano-api
     , optparse-applicative
     , auction
+
+test-suite tests
+  type: exitcode-stdio-1.0
+  hs-source-dirs:     tests
+  main-is:            Main.hs
+  ghc-options:        -threaded -rtsopts "-with-rtsopts=-T"
+  build-depends: base
+               , auction
+               , hspec
+               , plutus-tx
+               , plutus-ledger-api

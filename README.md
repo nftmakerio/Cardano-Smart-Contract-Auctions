@@ -92,6 +92,56 @@ marketplace: 250,000
 royalty: 250,000
 ```
 
-## Testing Prerequistes
+Here is another example with percentages were 80%, 15% and 5% with 10,000,000 lovelaces:
 
-Before testing you need to make sure you have `cardano-cli` installed and on your path, and it must be version 1.31.0 or greater.
+```
+seller: 7,578,947
+marketplace: 1,421,052
+royalty: 1,000,000
+```
+
+The extra 500,000 that was needed to give the royalty user 1 Ada, was taken equally from the seller and marketplace portions.
+
+The exact calculation is as follows.
+
+The percentages are sorted least to greatest. For each percentage the percentage is multiplied times the current total amount and divided by 1000 (remember the percentages are multiplied times a 10 so 2.5% is 25). If the portion is less than 1 Ada it is set to 1 Ada. The portion for this user is subtracted from the current total and their percentage is subtracted from the total percentages.
+
+The loop starts again, with a new current total and a new current total percentages. The next percentage is adjusted by dividing by the new total percentage.
+
+This process continues until the last element, which just get's whatever is left over.
+
+Let's revisit our example above to see how it works.
+
+The first time through the loop we multiple 50 * 10,000,000 and divide by 1,000 to get 500,000. This is less than 1 Ada (1,000,000) so we set the portion this user gets to 1 Ada. We subtract 1 Ada from the total to get 9 Ada and subtract 50 from the total percent (times 10) to get 950.
+
+For the next iteration we multiple 150 * 9,000,000 and divide by 950 to get 1,421,052. This is greater than 1 Ada so we don't have to adjust it. We subtract 1,421,052 from 9,000,000 to get 7,578,947. We subtract 150 from 950 to get 800.
+
+For the final iteration through the loop we just give the user the rest which is 7,578,947.
+
+## Unit Tests
+
+Because the divided up the price to various participants is so complicated there are unit tests to cover this logic specifically.
+
+Run the unit tests by calling:
+
+```bash
+$ cabal test
+```
+
+## Full System Testing Prerequistes
+
+Before testing you need to make sure you have `cardano-cli` installed and on your path, and it must be version 1.31.0 or greater. You will also need the json utility `jq` as well as `cardano-cli` helper `cardano-cli-balance-fixer` which can be downloaded here: https://github.com/Canonical-LLC/cardano-cli-balance-fixer
+
+# Full System Tests
+
+There are three large system tests that cover the main use cases and potential vulnerabilities we are aware of. The tests can be run on mainnet or testnet.
+
+They take a long time to run, around 20 minutes, and can fail if the testnet is overloaded.
+
+Luckily running them is easy:
+
+```bash
+$ ./scripts/tests/run-all-tests
+```
+
+The tests will start running. If the script errors one of the tests has failed. Otherwise all the tests have passed.
