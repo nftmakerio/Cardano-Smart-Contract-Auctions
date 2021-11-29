@@ -174,10 +174,10 @@ outbid/outbid, close/close and close,outbid
 are exploitable.
 
 If an attacker outbids the same payout address twice,
-they could rewire one of the payouts to themselves.
+they could rewire one of the bid refunds to themselves.
 
 If an attacker outbids and closes with the same payout address,
-they could rewire half the payouts.
+they could rewire half the refunds/payouts.
 
 If an attacker double closes with the same payout address,
 they could rewire half the payouts.
