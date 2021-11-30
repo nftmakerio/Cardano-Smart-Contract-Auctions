@@ -12,7 +12,7 @@ sleep 2
 $baseDir/wait/until-next-block.sh
 
 echo Start Auction
-$baseDir/happy-path/lock-tx.sh 500000 0
+$baseDir/happy-path/lock-tx.sh 400000 0
 sleep 2
 $baseDir/wait/until-next-block.sh
 
@@ -50,7 +50,7 @@ fi
 
 endTime=$(date +%s)
 elapsedTime=$(($endTime-$startTime))
-sleepTime=$((705 - $elapsedTime))
+sleepTime=$((605 - $elapsedTime))
 sleep $sleepTime
 
 echo Close
