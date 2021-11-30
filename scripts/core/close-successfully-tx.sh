@@ -28,7 +28,7 @@ utxoScript=$(scripts/query/sc.sh | grep $datumHash | grep $value | head -n 1 | c
 output1="1724100 lovelace + 1 $value"
 currentSlot=$(cardano-cli query tip $BLOCKCHAIN | jq .slot)
 startSlot=$(($currentSlot-1))
-nextTenSlots=$(($currentSlot+1000))
+nextTenSlots=$(($currentSlot+150))
 
 changeOutput=$(cardano-cli-balance-fixer change --address $marketplaceAddr $BLOCKCHAIN)
 extraOutput=""
