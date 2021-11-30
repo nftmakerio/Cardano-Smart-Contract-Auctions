@@ -141,17 +141,7 @@ They take a long time to run, around 20 minutes, and can fail if the testnet is 
 Luckily running them is easy:
 
 ```bash
-$ ./scripts/tests/run-all-tests
+$ ./scripts/tests/all.sh
 ```
 
 The tests will start running. If the script errors one of the tests has failed. Otherwise all the tests have passed.
-
-## TODO create faucet that is also the drain at the end of a run.
-## I either mint, or I reuse something I minted.
-# Each round starts with the seller having one nft and no money.
-# The marketplace has some money to close.
-# The bidders have exactly their bid.
-# The attacker has nothing
-# The royalty has nothing
-# Stuff happens
-# Everything is sent back to the faucet address.

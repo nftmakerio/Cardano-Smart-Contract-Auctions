@@ -11,9 +11,9 @@ $baseDir/core/close-successfully-tx.sh \
   $baseDir/$BLOCKCHAIN_PREFIX/datums/$DATUM_PREFIX/bid-2.json \
   $(cat $baseDir/$BLOCKCHAIN_PREFIX/datums/$DATUM_PREFIX/bid-2-hash.txt) \
   $(cat ~/$BLOCKCHAIN_PREFIX/buyer1.addr) \
-  27000000 \
+  26000000 \
   $(cat ~/$BLOCKCHAIN_PREFIX/seller.addr) \
-  1500000 \
+  1600000 \
   $(cat ~/$BLOCKCHAIN_PREFIX/royalities.addr) \
   1500000 \
   $(cat ~/$BLOCKCHAIN_PREFIX/marketplace.addr)

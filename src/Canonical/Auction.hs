@@ -281,7 +281,7 @@ mkValidator auction@Auction {..} action ctx =
         correctBidOutputDatum b
           = outputDatum == (auction { aHighBid = Just b })
 
-
+        -- The new value on the script should be the tokenValue
         correctBidOutputValue :: Integer -> Bool
         correctBidOutputValue amount =
           txOutValue ownOutput `Value.geq` (tokenValue <> Ada.lovelaceValueOf amount)
@@ -291,6 +291,8 @@ mkValidator auction@Auction {..} action ctx =
           Nothing -> True
           Just Bid{..} -> lovelacesPaidTo info bidBidder >= bidAmount
 
+        -- Bidding is allowed if the deadline is later than the valid tx
+        -- range. The deadline is in the future.
         correctBidSlotRange :: Bool
         !correctBidSlotRange = aDeadline `after` txInfoValidRange info
 
@@ -302,6 +304,8 @@ mkValidator auction@Auction {..} action ctx =
 
     Close ->
       let
+        -- Closing is allowed if the deadline is before than the valid tx
+        -- range. The deadline is past.
         correctCloseSlotRange :: Bool
         !correctCloseSlotRange = aDeadline `before` txInfoValidRange info
 

@@ -30,21 +30,28 @@ currentSlot=$(cardano-cli query tip $BLOCKCHAIN | jq .slot)
 startSlot=$(($currentSlot-1))
 nextTenSlots=$(($currentSlot+1000))
 
+changeOutput=$(cardano-cli-balance-fixer change --address $marketplaceAddr $BLOCKCHAIN)
+extraOutput=""
+if [ "$changeOutput" != "" ];then
+  extraOutput="+ $changeOutput"
+fi
+
+
 cardano-cli transaction build \
     --alonzo-era \
     $BLOCKCHAIN \
-    $(cardano-cli-balance-fixer input --address $sellerAddr $BLOCKCHAIN ) \
+    $(cardano-cli-balance-fixer input --address $marketplaceAddr $BLOCKCHAIN ) \
     --tx-in $utxoScript \
     --tx-in-script-file $nftValidatorFile \
     --tx-in-datum-file $datumFile \
     --tx-in-redeemer-file $redeemerFile \
     --required-signer $signingKey \
-    --tx-in-collateral $(cardano-cli-balance-fixer collateral --address $sellerAddr $BLOCKCHAIN) \
+    --tx-in-collateral $(cardano-cli-balance-fixer collateral --address $marketplaceAddr $BLOCKCHAIN) \
     --tx-out "$winningBuyer + $output1" \
-    --tx-out "$sellerAddr + $sellerAmount lovelace + $(cardano-cli-balance-fixer change --address $sellerAddr $BLOCKCHAIN)" \
+    --tx-out "$sellerAddr + $sellerAmount lovelace" \
     --tx-out "$royaltyAddr + $royaltyAmount lovelace "  \
-    --tx-out "$marketplaceAddr + $marketplaceAmount lovelace "  \
-    --change-address $sellerAddr \
+    --tx-out "$marketplaceAddr + $marketplaceAmount lovelace $extraOutput"  \
+    --change-address $marketplaceAddr \
     --protocol-params-file scripts/$BLOCKCHAIN_PREFIX/protocol-parameters.json \
     --invalid-before $startSlot\
     --invalid-hereafter $nextTenSlots \

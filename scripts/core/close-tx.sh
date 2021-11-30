@@ -3,16 +3,18 @@ set -eux
 thisDir=$(dirname "$0")
 baseDir=$thisDir/..
 
-sellerAddr=$1
+$baseDir/hash-plutus.sh
+
+closerAddress=$1
 signingKey=$2
-value=$3
-datumFile=$4
-datumHash=$5
+sellerAddr=$3
+value=$4
+datumFile=$5
+datumHash=$6
 
 nftValidatorFile=$baseDir/auction.plutus
 scriptHash=$(cat $baseDir/$BLOCKCHAIN_PREFIX/auction.addr)
 
-$baseDir/hash-plutus.sh
 bodyFile=temp/close-tx-body.01
 outFile=temp/close-tx.01
 redeemerFile="$baseDir/redeemers/close.json"
@@ -20,21 +22,27 @@ utxoScript=$(scripts/query/sc.sh | grep $datumHash | grep $value | head -n 1 | c
 output1="1724100 lovelace + 1 $value"
 currentSlot=$(cardano-cli query tip $BLOCKCHAIN | jq .slot)
 startSlot=$(($currentSlot-1))
-nextTenSlots=$(($currentSlot+1000))
+nextTenSlots=$(($currentSlot+150))
+
+changeOutput=$(cardano-cli-balance-fixer change --address $closerAddress $BLOCKCHAIN)
+extraOutput=""
+if [ "$changeOutput" != "" ];then
+  extraOutput="+ $changeOutput"
+fi
 
 cardano-cli transaction build \
     --alonzo-era \
     $BLOCKCHAIN \
-    $(cardano-cli-balance-fixer input --address $sellerAddr $BLOCKCHAIN ) \
+    $(cardano-cli-balance-fixer input --address $closerAddress $BLOCKCHAIN ) \
     --tx-in $utxoScript \
     --tx-in-script-file $nftValidatorFile \
     --tx-in-datum-file $datumFile \
     --tx-in-redeemer-file $redeemerFile \
     --required-signer $signingKey \
-    --tx-in-collateral $(cardano-cli-balance-fixer collateral --address $sellerAddr $BLOCKCHAIN) \
+    --tx-in-collateral $(cardano-cli-balance-fixer collateral --address $closerAddress $BLOCKCHAIN) \
     --tx-out "$sellerAddr + $output1" \
-    --tx-out "$sellerAddr + 1724100 lovelace + $(cardano-cli-balance-fixer change --address $sellerAddr $BLOCKCHAIN)" \
-    --change-address $sellerAddr \
+    --tx-out "$closerAddress + 1724100 lovelace $extraOutput" \
+    --change-address $closerAddress \
     --protocol-params-file scripts/$BLOCKCHAIN_PREFIX/protocol-parameters.json \
     --invalid-before $startSlot\
     --invalid-hereafter $nextTenSlots \
