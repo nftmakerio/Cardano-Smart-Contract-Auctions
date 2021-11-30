@@ -19,6 +19,12 @@ scriptHash=$(cat $baseDir/$BLOCKCHAIN_PREFIX/auction.addr)
 
 bodyFile=$tempDir/sell-tx-body.01
 outFile=$tempDir/sell-tx.01
+changeOutput=$(cardano-cli-balance-fixer change --address $sellerAddress $BLOCKCHAIN -o "$output")
+
+extraOutput=""
+if [ "$changeOutput" != "" ];then
+  extraOutput="+ $changeOutput"
+fi
 
 cardano-cli transaction build \
     --alonzo-era \
@@ -26,7 +32,7 @@ cardano-cli transaction build \
     $(cardano-cli-balance-fixer input --address $sellerAddress $BLOCKCHAIN) \
     --tx-out "$scriptHash + $output" \
     --tx-out-datum-hash $scriptDatumHash \
-    --tx-out "$sellerAddress + 1744798 lovelace + $(cardano-cli-balance-fixer change --address $sellerAddress $BLOCKCHAIN -o "$output")" \
+    --tx-out "$sellerAddress + 1744798 lovelace $extraOutput" \
     --change-address $sellerAddress \
     --protocol-params-file scripts/$BLOCKCHAIN_PREFIX/protocol-parameters.json \
     --out-file $bodyFile
