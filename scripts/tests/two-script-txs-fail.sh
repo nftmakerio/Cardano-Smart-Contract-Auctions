@@ -1,7 +1,6 @@
 set -eux
 thisDir=$(dirname "$0")
 baseDir=$thisDir/../
-startTime0=$(date +%s)
 bn=$(basename $0)
 
 $baseDir/wait/until-next-block.sh
@@ -36,11 +35,12 @@ $baseDir/wait/until-next-block.sh
 $baseDir/accounts/log-all-accounts.sh $bn 3
 $baseDir/accounts/diff-accounts.sh $bn 2 3
 
-startTime1=$(date +%s)
+
 export DATUM_PREFIX=1
 
 echo Start Auction 2
 $baseDir/happy-path/lock-tx.sh 550000 1
+startTime1=$(date +%s)
 sleep 2
 $baseDir/wait/until-next-block.sh
 

@@ -2,7 +2,6 @@ set -eux
 thisDir=$(dirname "$0")
 baseDir=$thisDir/../
 tempDir=$baseDir/../
-startTime=$(date +%s)
 bn=$(basename $0)
 
 $baseDir/wait/until-next-block.sh
@@ -17,6 +16,9 @@ $baseDir/accounts/log-all-accounts.sh $bn 0
 
 echo Start Auction
 $baseDir/happy-path/lock-tx.sh 400000 0
+
+startTime=$(date +%s)
+
 sleep 2
 $baseDir/wait/until-next-block.sh
 

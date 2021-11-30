@@ -1,7 +1,6 @@
 set -eux
 thisDir=$(dirname "$0")
 baseDir=$thisDir/../
-startTime=$(date +%s)
 bn=$(basename $0)
 
 $baseDir/wait/until-next-block.sh
