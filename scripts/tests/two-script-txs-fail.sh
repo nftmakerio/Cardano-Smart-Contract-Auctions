@@ -66,7 +66,7 @@ $baseDir/accounts/log-all-accounts.sh $bn 6
 $baseDir/accounts/diff-accounts.sh $bn 5 6
 
 endTime=$(date +%s)
-elapsedTime=$(($endTime-$startTime0))
+elapsedTime=$(($endTime-$startTime1))
 sleepTime=$((605 - $elapsedTime))
 sleep $sleepTime
 
