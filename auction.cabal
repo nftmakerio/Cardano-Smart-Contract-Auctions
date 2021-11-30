@@ -2,9 +2,10 @@ cabal-version: 2.4
 name:          auction
 version:       1.0.0.0
 license: MIT
-author:        Richard Wallace, Jonathan Fischoff
+author:        Richard Wallace, Jonathan Fischoff, Lars Bruenjes
 maintainer:    jonathan@Canonicalllc.com
 build-type:    Simple
+copyright: 2021 Canonical LLC
 
 common lang
   build-depends:    base ^>=4.14
