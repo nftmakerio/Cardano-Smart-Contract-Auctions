@@ -243,10 +243,12 @@ mkValidator auction@Auction {..} action ctx =
       Nothing -> tokenValue
       Just Bid{..} -> tokenValue <> Ada.lovelaceValueOf bidAmount
 
+    actualScriptValue :: Value
+    !actualScriptValue = getOnlyScriptInput info
     -- Ensure the value is on the script address and there is
     -- only one script input.
     correctInputValue :: Bool
-    !correctInputValue = getOnlyScriptInput info `Value.geq` expectedScriptValue
+    !correctInputValue = actualScriptValue `Value.geq` expectedScriptValue
 
   -- Always perform the input check
   in traceIfFalse "wrong input value" correctInputValue
@@ -281,10 +283,18 @@ mkValidator auction@Auction {..} action ctx =
         correctBidOutputDatum b
           = outputDatum == (auction { aHighBid = Just b })
 
+        oldBidAmount :: Integer
+        !oldBidAmount = case aHighBid of
+          Nothing -> 0
+          Just Bid {..} -> bidAmount
+
+        bidDiff :: Integer
+        bidDiff = bidAmount theBid - oldBidAmount
+
         -- The new value on the script should be the tokenValue
-        correctBidOutputValue :: Integer -> Bool
-        correctBidOutputValue amount =
-          txOutValue ownOutput `Value.geq` (tokenValue <> Ada.lovelaceValueOf amount)
+        correctBidOutputValue :: Bool
+        correctBidOutputValue =
+          txOutValue ownOutput `Value.geq` (actualScriptValue <> Ada.lovelaceValueOf bidDiff)
 
         correctBidRefund :: Bool
         !correctBidRefund = case aHighBid of
@@ -298,7 +308,7 @@ mkValidator auction@Auction {..} action ctx =
 
       in traceIfFalse "bid too low"        (sufficientBid $ bidAmount theBid)
       && traceIfFalse "wrong output datum" (correctBidOutputDatum theBid)
-      && traceIfFalse "wrong output value" (correctBidOutputValue $ bidAmount theBid)
+      && traceIfFalse "wrong output value" correctBidOutputValue
       && traceIfFalse "wrong refund"       correctBidRefund
       && traceIfFalse "too late"           correctBidSlotRange
 

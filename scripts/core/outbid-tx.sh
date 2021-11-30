@@ -43,7 +43,7 @@ cardano-cli transaction build \
     --tx-in-redeemer-file $redeemerFile \
     --required-signer $signingKey \
     --tx-in-collateral $(cardano-cli-balance-fixer collateral --address $buyerAddr $BLOCKCHAIN) \
-    --tx-out "$scriptHash + $bidAmount lovelace + 1 $value" \
+    --tx-out "$scriptHash + $bidAmount lovelace + 2000000 lovelace + 1 $value" \
     --tx-out-datum-hash $newDatumHash \
     --tx-out-datum-embed-file $newDatumFile \
     --tx-out "$buyerAddr + 3000000 lovelace $extraOutput" \
