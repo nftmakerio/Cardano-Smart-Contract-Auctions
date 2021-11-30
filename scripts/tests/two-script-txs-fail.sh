@@ -5,6 +5,8 @@ bn=$(basename $0)
 
 $baseDir/wait/until-next-block.sh
 
+export DATUM_PREFIX=0
+
 echo Mint 1
 $baseDir/minting/mint-0-policy.sh
 $baseDir/wait/until-next-block.sh

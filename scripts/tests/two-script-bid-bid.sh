@@ -12,6 +12,8 @@ $baseDir/wait/until-next-block.sh
 
 $baseDir/accounts/log-all-accounts.sh $bn 0
 
+export DATUM_PREFIX=0
+
 echo Start Auction 1
 $baseDir/happy-path/lock-tx.sh 600000
 sleep 2

@@ -5,12 +5,11 @@ tempDir=$baseDir/../
 bn=$(basename $0)
 
 $baseDir/wait/until-next-block.sh
-# find all the nfts and burn them
 
-echo Mint
-$baseDir/minting/mint-0-policy.sh
-sleep 2
-$baseDir/wait/until-next-block.sh
+# echo Mint
+# $baseDir/minting/mint-0-policy.sh
+# sleep 2
+# $baseDir/wait/until-next-block.sh
 
 $baseDir/accounts/log-all-accounts.sh $bn 0
 

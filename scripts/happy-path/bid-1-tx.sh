@@ -1,4 +1,4 @@
-set -eux
+set -eu
 thisDir=$(dirname "$0")
 baseDir=$thisDir/../
 

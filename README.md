@@ -135,6 +135,15 @@ $ cabal test
 
 Before testing you need to make sure you have `cardano-cli` installed and on your path, and it must be version 1.31.0 or greater. You will also need the json utility `jq` as well as `cardano-cli` helper `cardano-cli-balance-fixer` which can be downloaded here: https://github.com/Canonical-LLC/cardano-cli-balance-fixer
 
+## Init (only done once)
+
+First create the wallets and get the protocol parameters.
+
+```
+$ ./scripts/wallets/make-all-wallets.sh
+$ ./scripts/query-protocol-parameters.sh
+```
+
 # Full System Tests
 
 There are three large system tests that cover the main use cases and potential vulnerabilities we are aware of. The tests can be run on mainnet or testnet.
