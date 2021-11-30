@@ -308,8 +308,8 @@ mkValidator auction@Auction {..} action ctx =
         -- range. The deadline is in the future.
         correctBidSlotRange :: Bool
         !correctBidSlotRange
-          && aStartTime `before` txInfoValidRange info
-          =  aDeadline `after` txInfoValidRange info
+          =  aStartTime `before` txInfoValidRange info
+          && aDeadline `after` txInfoValidRange info
 
       in traceIfFalse "bid too low"        (sufficientBid $ bidAmount theBid)
       && traceIfFalse "wrong output datum" (correctBidOutputDatum theBid)

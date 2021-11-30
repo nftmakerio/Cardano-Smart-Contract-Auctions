@@ -1,7 +1,8 @@
 set -eux
 thisDir=$(dirname "$0")
 
-now=$(date +%s)
+nowSeconds=$(date +%s)
+now=$(($nowSeconds*1000))
 timestamp=$(($now*1000+$1))
 prefix=${2:-0}
 
