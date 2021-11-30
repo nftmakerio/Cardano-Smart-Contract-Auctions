@@ -21,7 +21,7 @@ redeemerFile="$baseDir/$BLOCKCHAIN_PREFIX/redeemers/close.json"
 utxoScript=$(scripts/query/sc.sh | grep $datumHash | grep $value | head -n 1 | cardano-cli-balance-fixer parse-as-utxo)
 output1="1724100 lovelace + 1 $value"
 currentSlot=$(cardano-cli query tip $BLOCKCHAIN | jq .slot)
-startSlot=$(($currentSlot-1))
+startSlot=$currentSlot
 nextTenSlots=$(($currentSlot+150))
 
 changeOutput=$(cardano-cli-balance-fixer change --address $closerAddress $BLOCKCHAIN)
