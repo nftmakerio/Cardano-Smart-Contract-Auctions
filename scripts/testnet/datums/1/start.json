@@ -5,7 +5,7 @@
       "bytes": "67614c1b06ddbb100cb6cbe919594cac31771c25530b6c7f28da242b"
     },
     {
-      "int": 1638176717000
+      "int": 1638243604000
     },
     {
       "int": 8000000
@@ -45,19 +45,8 @@
       ]
     },
     {
-      "constructor": 0,
+      "constructor": 1,
       "fields": [
-        {
-          "constructor": 0,
-          "fields": [
-            {
-              "bytes" : "5e96005ccd0c8ff27ef924bcbf7f3eae0c2e8597b5cc0c3b1cd5edaa"
-            },
-            {
-              "int" : 10000000
-            }
-          ]
-        }
       ]
     }
   ]

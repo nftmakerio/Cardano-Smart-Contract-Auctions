@@ -3,11 +3,13 @@ set -eux
 thisDir=$(dirname "$0")
 baseDir=$thisDir/..
 
-sellerAddr=$(cat ~/$BLOCKCHAIN_PREFIX/seller.addr)
+attackerAddr=$(cat ~/$BLOCKCHAIN_PREFIX/attacker.addr)
 signingKey=~/$BLOCKCHAIN_PREFIX/attacker.skey
 value="d6cfdbedd242056674c0e51ead01785497e3a48afbbb146dc72ee1e2.123456"
-datumFile=$baseDir/$BLOCKCHAIN_PREFIX/datums/bid-2.json
-datumHash=$(cat $baseDir/$BLOCKCHAIN_PREFIX/datums/bid-2-hash.txt)
+datumFile0=$baseDir/$BLOCKCHAIN_PREFIX/datums/0/bid-2.json
+datumHash0=$(cat $baseDir/$BLOCKCHAIN_PREFIX/datums/0/bid-2-hash.txt)
+datumFile1=$baseDir/$BLOCKCHAIN_PREFIX/datums/1/bid-2.json
+datumHash1=$(cat $baseDir/$BLOCKCHAIN_PREFIX/datums/1/bid-2-hash.txt)
 winningBuyer=$(cat ~/$BLOCKCHAIN_PREFIX/buyer1.addr)
 sellerAmount=27000000
 sellerAddr=$(cat ~/$BLOCKCHAIN_PREFIX/seller.addr)
@@ -24,12 +26,12 @@ $baseDir/hash-plutus.sh
 bodyFile=temp/close-tx-body.01
 outFile=temp/close-tx.01
 redeemerFile="$baseDir/redeemers/close.json"
-utxoScript0=$(scripts/query/sc.sh | grep $datumHash | grep $value | head -n 1 | cardano-cli-balance-fixer parse-as-utxo)
-utxoScript1=$(scripts/query/sc.sh | grep $datumHash | grep $value | tail -n 1 | cardano-cli-balance-fixer parse-as-utxo)
+utxoScript0=$(scripts/query/sc.sh | grep $datumHash0 | grep $value | head -n 1 | cardano-cli-balance-fixer parse-as-utxo)
+utxoScript1=$(scripts/query/sc.sh | grep $datumHash1 | grep $value | tail -n 1 | cardano-cli-balance-fixer parse-as-utxo)
 output1="1724100 lovelace + 1 $value"
 currentSlot=$(cardano-cli query tip $BLOCKCHAIN | jq .slot)
 startSlot=$(($currentSlot-1))
-nextTenSlots=$(($currentSlot+1000))
+nextTenSlots=$(($currentSlot+150))
 
 cardano-cli transaction build \
     --alonzo-era \
@@ -37,11 +39,11 @@ cardano-cli transaction build \
     $(cardano-cli-balance-fixer input --address $sellerAddr $BLOCKCHAIN ) \
     --tx-in $utxoScript0 \
     --tx-in-script-file $nftValidatorFile \
-    --tx-in-datum-file $datumFile \
+    --tx-in-datum-file $datumFile0 \
     --tx-in-redeemer-file $redeemerFile \
     --tx-in $utxoScript1 \
     --tx-in-script-file $nftValidatorFile \
-    --tx-in-datum-file $datumFile \
+    --tx-in-datum-file $datumFile1 \
     --tx-in-redeemer-file $redeemerFile \
     --required-signer $signingKey \
     --tx-in-collateral $(cardano-cli-balance-fixer collateral --address $sellerAddr $BLOCKCHAIN) \

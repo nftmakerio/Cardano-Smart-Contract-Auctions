@@ -54,13 +54,13 @@ Here is the Haskell type of the Datum
 
 ```haskell
 data Auction = Auction
-  { aSeller      :: !PubKeyHash
-  , aDeadline    :: !POSIXTime
-  , aMinBid      :: !Integer
-  , aCurrency    :: !CurrencySymbol
-  , aToken       :: !TokenName
+  { aSeller            :: !PubKeyHash
+  , aDeadline          :: !POSIXTime
+  , aMinBid            :: !Integer
+  , aCurrency          :: !CurrencySymbol
+  , aToken             :: !TokenName
   , aPayoutPercentages :: !(A.Map PubKeyHash Integer)
-  , aHighBid     :: !(Maybe Bid)
+  , aHighBid           :: !(Maybe Bid)
   }
 ```
 

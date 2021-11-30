@@ -11,7 +11,7 @@ $baseDir/minting/mint-0-policy.sh
 $baseDir/wait/until-next-block.sh
 
 echo Start Auction
-$baseDir/happy-path/lock-tx.sh 500000
+$baseDir/happy-path/lock-tx.sh 500000 0
 $baseDir/wait/until-next-block.sh
 
 echo Early Close Fails
