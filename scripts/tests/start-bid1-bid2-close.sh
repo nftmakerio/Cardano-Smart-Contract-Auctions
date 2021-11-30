@@ -8,16 +8,18 @@ $baseDir/wait/until-next-block.sh
 
 echo Mint
 $baseDir/minting/mint-0-policy.sh
+sleep 2
 $baseDir/wait/until-next-block.sh
 
 echo Start Auction
 $baseDir/happy-path/lock-tx.sh 500000 0
+sleep 2
 $baseDir/wait/until-next-block.sh
 
 echo Early Close Fails
 detected=false
 
-"$baseDir/failure-cases/early-close.sh" || {
+"$baseDir/failure-cases/close-too-early-tx.sh" || {
     detected=true
 }
 
@@ -27,10 +29,12 @@ fi
 
 echo First Bid
 $baseDir/happy-path/bid-1-tx.sh
+sleep 2
 $baseDir/wait/until-next-block.sh
 
 echo Second Bid
 $baseDir/happy-path/bid-2-tx.sh
+sleep 2
 $baseDir/wait/until-next-block.sh
 
 echo Failed Bid
@@ -46,7 +50,7 @@ fi
 
 endTime=$(date +%s)
 elapsedTime=$(($endTime-$startTime))
-sleepTime=$((805 - $elapsedTime))
+sleepTime=$((705 - $elapsedTime))
 sleep $sleepTime
 
 echo Close

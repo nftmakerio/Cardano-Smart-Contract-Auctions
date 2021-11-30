@@ -8,10 +8,12 @@ $baseDir/wait/until-next-block.sh
 
 echo Mint
 $baseDir/minting/mint-0-policy.sh
+sleep 2
 $baseDir/wait/until-next-block.sh
 
 echo Start Auction
 $baseDir/happy-path/lock-tx.sh 1 0
+sleep 2
 $baseDir/wait/until-next-block.sh
 
 $baseDir/wait/until-next-block.sh

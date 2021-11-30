@@ -2,6 +2,7 @@ set -eux
 thisDir=$(dirname "$0")
 baseDir=$thisDir/../
 
+DATUM_PREFIX=${DATUM_PREFIX:-0}
 
 $baseDir/core/close-tx.sh \
   $(cat ~/$BLOCKCHAIN_PREFIX/seller.addr) \
