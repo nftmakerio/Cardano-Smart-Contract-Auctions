@@ -55,6 +55,7 @@ Here is the Haskell type of the Datum
 ```haskell
 data Auction = Auction
   { aSeller            :: !PubKeyHash
+  , aStartTime         :: !POSIXTime
   , aDeadline          :: !POSIXTime
   , aMinBid            :: !Integer
   , aCurrency          :: !CurrencySymbol

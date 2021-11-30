@@ -30,6 +30,7 @@ data Bid = Bid
 
 data Auction = Auction
   { aSeller            :: !PubKeyHash
+  , aStartTime         :: !POSIXTime
   , aDeadline          :: !POSIXTime
   , aMinBid            :: !Integer
   , aCurrency          :: !CurrencySymbol
@@ -50,6 +51,7 @@ instance Eq Auction where
   {-# INLINABLE (==) #-}
   x == y
     =  (aSeller            x == aSeller            y)
+    && (aStartTime         x == aStartTime         y)
     && (aDeadline          x == aDeadline          y)
     && (aMinBid            x == aMinBid            y)
     && (aCurrency          x == aCurrency          y)
@@ -301,10 +303,13 @@ mkValidator auction@Auction {..} action ctx =
           Nothing -> True
           Just Bid{..} -> lovelacesPaidTo info bidBidder >= bidAmount
 
-        -- Bidding is allowed if the deadline is later than the valid tx
+        -- Bidding is allowed if the start time is before the tx interval
+        -- deadline is later than the valid tx
         -- range. The deadline is in the future.
         correctBidSlotRange :: Bool
-        !correctBidSlotRange = aDeadline `after` txInfoValidRange info
+        !correctBidSlotRange
+          && aStartTime `before` txInfoValidRange info
+          =  aDeadline `after` txInfoValidRange info
 
       in traceIfFalse "bid too low"        (sufficientBid $ bidAmount theBid)
       && traceIfFalse "wrong output datum" (correctBidOutputDatum theBid)

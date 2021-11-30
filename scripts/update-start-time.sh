@@ -21,6 +21,9 @@ cat << EOF > $thisDir/$BLOCKCHAIN_PREFIX/datums/$prefix/start.json
       "bytes": "$sellerPkh"
     },
     {
+      "int": $now
+    },
+    {
       "int": $timestamp
     },
     {
@@ -76,6 +79,9 @@ cat << EOF > $thisDir/$BLOCKCHAIN_PREFIX/datums/$prefix/bid-1.json
   "fields": [
     {
       "bytes": "$sellerPkh"
+    },
+    {
+      "int": $now
     },
     {
       "int": $timestamp
@@ -146,6 +152,9 @@ cat << EOF > $thisDir/$BLOCKCHAIN_PREFIX/datums/$prefix/seller-bid-1.json
       "bytes": "$sellerPkh"
     },
     {
+      "int": $now
+    },
+    {
       "int": $timestamp
     },
     {
@@ -212,6 +221,9 @@ cat << EOF > $thisDir/$BLOCKCHAIN_PREFIX/datums/$prefix/bid-2.json
   "fields": [
     {
       "bytes": "$sellerPkh"
+    },
+    {
+      "int": $now
     },
     {
       "int": $timestamp
