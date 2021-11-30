@@ -48,7 +48,7 @@ Example transactions can be found in `scripts/core`. The scripts are used by oth
 
 ## Example Redeemers and Datums
 
-Example redeemers are found in `scripts/redeemers` and example datums are found in `scripts/datums`.
+Example redeemers are found in `scripts/testnet/redeemers` and example datums are found in `scripts/datums`.
 
 Here is the Haskell type of the Datum
 

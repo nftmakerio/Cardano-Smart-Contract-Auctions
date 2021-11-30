@@ -22,7 +22,7 @@ royaltyAddr=$(cat ~/$BLOCKCHAIN_PREFIX/royalities.addr)
 marketplaceAmount=1500000
 marketplaceAddr=$(cat ~/$BLOCKCHAIN_PREFIX/marketplace.addr)
 
-closeRedeemerFile="$baseDir/redeemers/close.json"
+closeRedeemerFile="$baseDir/$BLOCKCHAIN_PREFIX/redeemers/close.json"
 
 
 output1="1724100 lovelace + 1 $value"
@@ -35,7 +35,7 @@ oldDatumHash=$(cat $baseDir/$BLOCKCHAIN_PREFIX/datums/1/seller-bid-1-hash.txt)
 newDatumHash=$(cat $baseDir/$BLOCKCHAIN_PREFIX/datums/1/bid-2-hash.txt)
 newDatumFile=$baseDir/$BLOCKCHAIN_PREFIX/datums/1/bid-2.json
 bidAmount=30000000
-redeemerFile=$baseDir/redeemers/bid-2.json
+redeemerFile=$baseDir/$BLOCKCHAIN_PREFIX/redeemers/bid-2.json
 oldBidder=$(cat ~/$BLOCKCHAIN_PREFIX/buyer.addr)
 oldAmount=10000000
 

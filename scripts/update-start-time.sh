@@ -7,12 +7,18 @@ prefix=${2:-0}
 
 mkdir -p $thisDir/$BLOCKCHAIN_PREFIX/datums/$prefix
 
+sellerPkh=$(cat $thisDir/$BLOCKCHAIN_PREFIX/pkhs/seller-pkh.txt)
+marketplacePkh=$(cat $thisDir/$BLOCKCHAIN_PREFIX/pkhs/marketplace-pkh.txt)
+royaltyPkh=$(cat $thisDir/$BLOCKCHAIN_PREFIX/pkhs/royalities-pkh.txt)
+buyerPkh=$(cat $thisDir/$BLOCKCHAIN_PREFIX/pkhs/buyer-pkh.txt)
+buyer1Pkh=$(cat $thisDir/$BLOCKCHAIN_PREFIX/pkhs/buyer1-pkh.txt)
+
 cat << EOF > $thisDir/$BLOCKCHAIN_PREFIX/datums/$prefix/start.json
 {
   "constructor": 0,
   "fields": [
     {
-      "bytes": "67614c1b06ddbb100cb6cbe919594cac31771c25530b6c7f28da242b"
+      "bytes": "$sellerPkh"
     },
     {
       "int": $timestamp
@@ -33,7 +39,7 @@ cat << EOF > $thisDir/$BLOCKCHAIN_PREFIX/datums/$prefix/start.json
             "int": 900
           },
           "k": {
-            "bytes": "67614c1b06ddbb100cb6cbe919594cac31771c25530b6c7f28da242b"
+            "bytes": "$sellerPkh"
           }
         },
         {
@@ -41,7 +47,7 @@ cat << EOF > $thisDir/$BLOCKCHAIN_PREFIX/datums/$prefix/start.json
             "int": 50
           },
           "k": {
-            "bytes": "1d0ab2689eed633f013b347ba5db41919367dfc86d0d74d0a809c3e0"
+            "bytes": "$royaltyPkh"
           }
         },
         {
@@ -49,7 +55,7 @@ cat << EOF > $thisDir/$BLOCKCHAIN_PREFIX/datums/$prefix/start.json
             "int": 50
           },
           "k": {
-            "bytes": "b90c88a3460d723708b5c8a2d8c33951b13f920de8e8ff605480bf2f"
+            "bytes": "$marketplacePkh"
           }
         }
       ]
@@ -69,7 +75,7 @@ cat << EOF > $thisDir/$BLOCKCHAIN_PREFIX/datums/$prefix/bid-1.json
   "constructor": 0,
   "fields": [
     {
-      "bytes": "67614c1b06ddbb100cb6cbe919594cac31771c25530b6c7f28da242b"
+      "bytes": "$sellerPkh"
     },
     {
       "int": $timestamp
@@ -83,14 +89,14 @@ cat << EOF > $thisDir/$BLOCKCHAIN_PREFIX/datums/$prefix/bid-1.json
     {
       "bytes": "123456"
     },
-    {
+        {
       "map": [
         {
           "v": {
             "int": 900
           },
           "k": {
-            "bytes": "67614c1b06ddbb100cb6cbe919594cac31771c25530b6c7f28da242b"
+            "bytes": "$sellerPkh"
           }
         },
         {
@@ -98,7 +104,7 @@ cat << EOF > $thisDir/$BLOCKCHAIN_PREFIX/datums/$prefix/bid-1.json
             "int": 50
           },
           "k": {
-            "bytes": "1d0ab2689eed633f013b347ba5db41919367dfc86d0d74d0a809c3e0"
+            "bytes": "$royaltyPkh"
           }
         },
         {
@@ -106,7 +112,7 @@ cat << EOF > $thisDir/$BLOCKCHAIN_PREFIX/datums/$prefix/bid-1.json
             "int": 50
           },
           "k": {
-            "bytes": "b90c88a3460d723708b5c8a2d8c33951b13f920de8e8ff605480bf2f"
+            "bytes": "$marketplacePkh"
           }
         }
       ]
@@ -118,7 +124,7 @@ cat << EOF > $thisDir/$BLOCKCHAIN_PREFIX/datums/$prefix/bid-1.json
           "constructor": 0,
           "fields": [
             {
-              "bytes" : "5e96005ccd0c8ff27ef924bcbf7f3eae0c2e8597b5cc0c3b1cd5edaa"
+              "bytes" : "$buyerPkh"
             },
             {
               "int" : 10000000
@@ -137,7 +143,7 @@ cat << EOF > $thisDir/$BLOCKCHAIN_PREFIX/datums/$prefix/seller-bid-1.json
   "constructor": 0,
   "fields": [
     {
-      "bytes": "67614c1b06ddbb100cb6cbe919594cac31771c25530b6c7f28da242b"
+      "bytes": "$sellerPkh"
     },
     {
       "int": $timestamp
@@ -158,7 +164,7 @@ cat << EOF > $thisDir/$BLOCKCHAIN_PREFIX/datums/$prefix/seller-bid-1.json
             "int": 900
           },
           "k": {
-            "bytes": "67614c1b06ddbb100cb6cbe919594cac31771c25530b6c7f28da242b"
+            "bytes": "$sellerPkh"
           }
         },
         {
@@ -166,7 +172,7 @@ cat << EOF > $thisDir/$BLOCKCHAIN_PREFIX/datums/$prefix/seller-bid-1.json
             "int": 50
           },
           "k": {
-            "bytes": "1d0ab2689eed633f013b347ba5db41919367dfc86d0d74d0a809c3e0"
+            "bytes": "$royaltyPkh"
           }
         },
         {
@@ -174,7 +180,7 @@ cat << EOF > $thisDir/$BLOCKCHAIN_PREFIX/datums/$prefix/seller-bid-1.json
             "int": 50
           },
           "k": {
-            "bytes": "b90c88a3460d723708b5c8a2d8c33951b13f920de8e8ff605480bf2f"
+            "bytes": "$marketplacePkh"
           }
         }
       ]
@@ -186,7 +192,7 @@ cat << EOF > $thisDir/$BLOCKCHAIN_PREFIX/datums/$prefix/seller-bid-1.json
           "constructor": 0,
           "fields": [
             {
-              "bytes" : "67614c1b06ddbb100cb6cbe919594cac31771c25530b6c7f28da242b"
+              "bytes" : "$buyer1Pkh"
             },
             {
               "int" : 10000000

@@ -16,7 +16,7 @@ oldDatumHash1=$(cat $baseDir/$BLOCKCHAIN_PREFIX/datums/1/bid-1-hash.txt)
 newDatumHash1=$(cat $baseDir/$BLOCKCHAIN_PREFIX/datums/1/bid-2-hash.txt)
 newDatumFile=$baseDir/$BLOCKCHAIN_PREFIX/datums/0/bid-2.json
 bidAmount=30000000
-redeemerFile=$baseDir/redeemers/bid-2.json
+redeemerFile=$baseDir/$BLOCKCHAIN_PREFIX/redeemers/bid-2.json
 oldBidder=$(cat ~/$BLOCKCHAIN_PREFIX/buyer.addr)
 oldAmount=10000000
 
