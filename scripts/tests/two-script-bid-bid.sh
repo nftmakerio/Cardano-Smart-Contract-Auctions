@@ -7,12 +7,14 @@ $baseDir/wait/until-next-block.sh
 
 echo Mint 1
 $baseDir/minting/mint-0-policy.sh
+sleep 2
 $baseDir/wait/until-next-block.sh
 
 $baseDir/accounts/log-all-accounts.sh $bn 0
 
 echo Start Auction 1
 $baseDir/happy-path/lock-tx.sh 600000
+sleep 2
 $baseDir/wait/until-next-block.sh
 
 $baseDir/accounts/log-all-accounts.sh $bn 1
@@ -20,6 +22,7 @@ $baseDir/accounts/diff-accounts.sh $bn 0 1
 
 echo First Bid 1
 $baseDir/happy-path/bid-1-tx.sh
+sleep 2
 $baseDir/wait/until-next-block.sh
 
 $baseDir/accounts/log-all-accounts.sh $bn 2
@@ -27,6 +30,7 @@ $baseDir/accounts/diff-accounts.sh $bn 1 2
 
 echo Mint 2
 $baseDir/minting/mint-0-policy.sh
+sleep 2
 $baseDir/wait/until-next-block.sh
 
 $baseDir/accounts/log-all-accounts.sh $bn 3
@@ -37,6 +41,7 @@ export DATUM_PREFIX=1
 echo Start Auction 2
 $baseDir/happy-path/lock-tx.sh 700000 1
 startTime1=$(date +%s)
+sleep 2
 $baseDir/wait/until-next-block.sh
 
 $baseDir/accounts/log-all-accounts.sh $bn 4
@@ -44,6 +49,7 @@ $baseDir/accounts/diff-accounts.sh $bn 3 4
 
 echo First Bid 2
 $baseDir/happy-path/bid-1-tx.sh
+sleep 2
 $baseDir/wait/until-next-block.sh
 
 $baseDir/accounts/log-all-accounts.sh $bn 5
@@ -67,6 +73,7 @@ export DATUM_PREFIX=0
 
 echo Second Bid 1
 $baseDir/happy-path/bid-2-tx.sh
+sleep 2
 $baseDir/wait/until-next-block.sh
 
 $baseDir/accounts/log-all-accounts.sh $bn 7
@@ -76,6 +83,7 @@ export DATUM_PREFIX=1
 
 echo Second Bid 2
 $baseDir/happy-path/bid-2-tx.sh
+sleep 2
 $baseDir/wait/until-next-block.sh
 
 $baseDir/accounts/log-all-accounts.sh $bn 8
