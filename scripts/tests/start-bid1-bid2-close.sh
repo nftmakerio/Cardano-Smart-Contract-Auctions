@@ -83,7 +83,7 @@ $baseDir/accounts/diff-accounts.sh $bn 5 6
 
 endTime=$(date +%s)
 elapsedTime=$(($endTime-$startTime))
-sleepTime=$((555 - $elapsedTime))
+sleepTime=$((605 - $elapsedTime))
 sleep $sleepTime
 
 echo Close with Wrong Payout Fails
