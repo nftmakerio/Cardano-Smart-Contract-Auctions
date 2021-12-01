@@ -144,6 +144,123 @@ $ ./scripts/wallets/make-all-wallets.sh
 $ ./scripts/query-protocol-parameters.sh
 ```
 
+# Manual Testing
+
+We will walk through the process of manually testing a start, bid, outbid and close flow.
+
+After following the setup steps above, first make sure that the `~/$BLOCKCHAIN_PREFIX/seller.addr` has Ada.
+
+Start by minting a token for the auction:
+
+```bash
+$ scripts/mint-0-policy.sh
+```
+
+Wait for the next slot:
+
+```bash
+$ scripts/wait/until-next-block.sh
+```
+
+You can now view the minted token in the `seller`'s wallet:
+
+```bash
+$ scripts/query/seller.sh
+```
+
+Now start the auction by calling:
+
+```bash
+$ scripts/happy-path/lock-tx.sh 400000 0
+```
+
+This will create a auction that expires in 400 seconds. The `0` is namespace so we can have more than one auction going at a time.
+
+Wait for the next slot:
+
+```bash
+$ scripts/wait/until-next-block.sh
+```
+
+You can now view the token at the smart contract address:
+
+```bash
+$ scripts/query/sc.sh
+```
+
+Make sure that the `~/$BLOCKCHAIN_PREFIX/seller.addr` has over 11 Ada.
+
+Now create a bid:
+
+```bash
+$ scripts/happy-path/bid-1-tx.sh
+```
+
+Wait for the next slot, and query the script address
+
+```bash
+$ scripts/query/sc.sh
+```
+
+It should show the additional 10 Ada bid is now stored there.
+
+Make sure that the `~/$BLOCKCHAIN_PREFIX/buyer1.addr` has over 33 Ada.
+
+Now create a bid, that replaces the first bid:
+
+```bash
+$ scripts/happy-path/bid-2-tx.sh
+```
+
+Wait for the next slot, and query the script address
+
+```bash
+$ scripts/query/sc.sh
+```
+
+This should show the new bid's Ada.
+
+Query the `buyer` address:
+
+```bash
+$ scripts/query/buyer.sh
+```
+
+This should show the old bid Ada has been returned.
+
+At this wait for the auction to expire.
+
+Make sure that the `~/$BLOCKCHAIN_PREFIX/marketplace.addr` has over 3 Ada.
+
+When the time is right, call close:
+
+```bash
+$ scripts/happy-path/close-tx.sh
+```
+
+Wait for the next slot, and then check that the token is in `buyer1`'s wallet:
+
+```bash
+$ scripts/query/buyer-1.sh
+```
+
+and the bid is in the sellers wallet:
+
+```bash
+$ scripts/query/seller.sh
+```
+
+and the marketplace:
+
+```bash
+$ scripts/query/marketplace.sh
+```
+and
+
+```bash
+$ scripts/query/royalty.sh
+```
+
 # Full System Tests
 
 There are three large system tests that cover the main use cases and potential vulnerabilities we are aware of. The tests can be run on mainnet or testnet.
