@@ -1,6 +1,7 @@
 set -eux
 thisDir=$(dirname "$0")
 baseDir=$thisDir/../
+tempDir=$baseDir/../temp
 
 $baseDir/hash-datums.sh
 $baseDir/hash-plutus.sh
