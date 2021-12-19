@@ -26,7 +26,7 @@ scriptHash=$(cat $baseDir/$BLOCKCHAIN_PREFIX/auction.addr)
 $baseDir/hash-plutus.sh
 bodyFile=temp/close-tx-body.01
 outFile=temp/close-tx.01
-redeemerFile="$baseDir/$BLOCKCHAIN_PREFIX/redeemers/close.json"
+redeemerFile="$tempDir/$BLOCKCHAIN_PREFIX/redeemers/close.json"
 utxoScript0=$(scripts/query/sc.sh | grep $datumHash0 | grep $value | head -n 1 | cardano-cli-balance-fixer parse-as-utxo)
 utxoScript1=$(scripts/query/sc.sh | grep $datumHash1 | grep $value | tail -n 1 | cardano-cli-balance-fixer parse-as-utxo)
 output1="1724100 lovelace + 1 $value"

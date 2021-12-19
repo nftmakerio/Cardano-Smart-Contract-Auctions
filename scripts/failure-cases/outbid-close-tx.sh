@@ -23,7 +23,7 @@ royaltyAddr=$(cat ~/$BLOCKCHAIN_PREFIX/royalities.addr)
 marketplaceAmount=1500000
 marketplaceAddr=$(cat ~/$BLOCKCHAIN_PREFIX/marketplace.addr)
 
-closeRedeemerFile="$baseDir/$BLOCKCHAIN_PREFIX/redeemers/close.json"
+closeRedeemerFile="$tempDir/$BLOCKCHAIN_PREFIX/redeemers/close.json"
 
 
 output1="1724100 lovelace + 1 $value"

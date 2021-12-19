@@ -12,7 +12,7 @@ marketplaceAddr=$(cat ~/$BLOCKCHAIN_PREFIX/marketplace.addr)
 cardano-cli transaction build \
   --alonzo-era \
   $BLOCKCHAIN \
-  --tx-in 4546d3e59e5bac90dd4b0b732b8a2bc2a96eded09fe3aff409847aaa93b5b301#0 \
+  --tx-in 225c04796e6647b4fe8f375dcf9909b8a847f1d08a43466d114a88a4723c279e#0 \
   --tx-out "$sellerAddr +50000000 lovelace" \
   --tx-out "$buyerAddr +50000000 lovelace" \
   --tx-out "$buyer1Addr +50000000 lovelace" \
